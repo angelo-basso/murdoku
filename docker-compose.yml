@@ -1,0 +1,11 @@
+services:
+  murdoku:
+    # Option A — construire l'image localement à partir du Dockerfile :
+    build: .
+    # Option B — utiliser l'image publiée par la CI (commenter `build` ci-dessus) :
+    # image: ghcr.io/angelo-basso/murdoku:latest
+    image: murdoku:latest
+    container_name: murdoku
+    ports:
+      - "8080:80" # http://localhost:8080
+    restart: unless-stopped

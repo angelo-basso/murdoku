@@ -33,6 +33,43 @@ npm start            # http://localhost:4200 (web)
 npm run build        # génère le dossier ./www
 ```
 
+## Déploiement Docker (serveur auto-hébergé)
+
+L'app est servie en statique par **nginx** (avec fallback SPA). Deux options :
+
+### Option A — construire et lancer localement
+
+```bash
+docker compose up -d --build
+# → http://localhost:8080
+```
+
+ou sans compose :
+
+```bash
+docker build -t murdoku:latest .
+docker run -d -p 8080:80 --name murdoku --restart unless-stopped murdoku:latest
+```
+
+### Option B — utiliser l'image publiée par la CI (GHCR)
+
+Le workflow `.github/workflows/docker-publish.yml` construit et pousse l'image
+sur `ghcr.io/angelo-basso/murdoku` à chaque push sur `main` (et sur les tags `v*`).
+Sur ton serveur :
+
+```bash
+docker login ghcr.io                       # avec un Personal Access Token (scope read:packages)
+docker pull ghcr.io/angelo-basso/murdoku:latest
+docker run -d -p 8080:80 --name murdoku --restart unless-stopped \
+  ghcr.io/angelo-basso/murdoku:latest
+```
+
+> Pour utiliser cette image via `docker compose`, décommente la ligne `image:`
+> (et commente `build: .`) dans `docker-compose.yml`.
+
+Derrière un reverse proxy (Traefik, Nginx Proxy Manager, Caddy…), route
+simplement ton domaine vers le port `80` du conteneur.
+
 ## Empaqueter en application mobile
 
 ```bash

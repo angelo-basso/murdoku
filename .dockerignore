@@ -1,0 +1,16 @@
+node_modules
+www
+dist
+out-tsc
+.angular
+.git
+.github
+android
+ios
+*.log
+.DS_Store
+.idea
+.vscode
+Dockerfile
+.dockerignore
+docker-compose.yml
