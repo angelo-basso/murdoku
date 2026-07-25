@@ -1,0 +1,55 @@
+/**
+ * Murdoku — thème "polar / enquête" : ambiance nocturne, accents dorés.
+ */
+:root {
+  --ion-color-primary: #d4af37; /* doré, style dossier d'enquête */
+  --ion-color-primary-rgb: 212, 175, 55;
+  --ion-color-primary-contrast: #1b1033;
+  --ion-color-primary-contrast-rgb: 27, 16, 51;
+  --ion-color-primary-shade: #bb9a30;
+  --ion-color-primary-tint: #d8b74b;
+
+  --ion-color-secondary: #6c5ce7;
+  --ion-color-secondary-rgb: 108, 92, 231;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #5f51cb;
+  --ion-color-secondary-tint: #7b6ce9;
+
+  --ion-color-danger: #eb445a;
+  --ion-color-danger-rgb: 235, 68, 90;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #cf3c4f;
+  --ion-color-danger-tint: #ed576b;
+
+  --ion-color-success: #2dd36f;
+  --ion-color-success-rgb: 45, 211, 111;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #28ba62;
+  --ion-color-success-tint: #42d77d;
+
+  /* Fond global sombre, ambiance polar */
+  --ion-background-color: #17102b;
+  --ion-background-color-rgb: 23, 16, 43;
+  --ion-text-color: #f2ecff;
+  --ion-text-color-rgb: 242, 236, 255;
+
+  --ion-toolbar-background: #1f1638;
+  --ion-item-background: #221a3d;
+  --ion-card-background: #221a3d;
+
+  /* Variables spécifiques au plateau Murdoku */
+  --murdoku-board-bg: #14102a;
+  --murdoku-cell-bg: #241c42;
+  --murdoku-cell-given-bg: #2f2555;
+  --murdoku-cell-selected-bg: #4a3aa0;
+  --murdoku-cell-peer-bg: #2b2250;
+  --murdoku-cell-same-bg: #3a2f70;
+  --murdoku-grid-line: #0d0a1c;
+  --murdoku-box-line: #d4af37;
+  --murdoku-culprit-bg: #4a2038;
+  --murdoku-culprit-border: #eb445a;
+  --murdoku-error: #eb445a;
+}
