@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { arrowBack, bulbOutline, refreshOutline, listOutline } from 'ionicons/icons';
+import { arrowBack, bulbOutline, refreshOutline, listOutline, createOutline } from 'ionicons/icons';
 import { findDeductionCase } from '../../core/data/deduction-cases';
 import { DeductionGameService } from '../../core/services/deduction-game.service';
 import { DeductionGeneratorService } from '../../core/services/deduction-generator.service';
@@ -15,7 +15,7 @@ interface CellVm {
   r: number; col: number; room: string; roomName: string; firstOfRoom: boolean;
   tint: string; furn: string | null; blocked: boolean;
   occupant: string | null; occAvatar: string | null; occName: string | null;
-  conflict: boolean; wallR: boolean; wallB: boolean; canPlace: boolean;
+  conflict: boolean; wallR: boolean; wallB: boolean; canPlace: boolean; elim: boolean;
 }
 
 const TINT: Record<string, string> = {
@@ -54,10 +54,12 @@ const TINT: Record<string, string> = {
             <button type="button" class="cell"
               [class.blocked]="cell.blocked" [class.conflict]="cell.conflict"
               [class.wall-r]="cell.wallR" [class.wall-b]="cell.wallB" [class.place]="cell.canPlace"
+              [attr.data-r]="cell.r" [attr.data-c]="cell.col"
               [style.background]="cell.tint" (click)="game.tapCell(cell.r, cell.col)">
               @if (cell.firstOfRoom) { <span class="room-label">{{ cell.roomName }}</span> }
               @if (cell.furn) { <img class="furn" [src]="cell.furn" alt="" draggable="false" /> }
-              @if (cell.occAvatar) { <img class="token" [src]="cell.occAvatar" [alt]="cell.occName!" draggable="false" /> }
+              @if (cell.occAvatar) { <img class="token" [src]="cell.occAvatar" [alt]="cell.occName!" draggable="false" (pointerdown)="dragStart(cell.occupant!, $event)" /> }
+              @if (cell.elim) { <span class="xmark">✕</span> }
             </button>
           }
         </div>
@@ -66,7 +68,7 @@ const TINT: Record<string, string> = {
         <div class="tray">
           @for (p of people(); track p.id) {
             <button type="button" class="person" [class.sel]="p.selected" [class.placed]="p.placed"
-              [class.victim]="p.victim" (click)="onPerson(p.id)">
+              [class.victim]="p.victim" (pointerdown)="dragStart(p.id, $event)" (click)="onPerson(p.id)">
               <img [src]="p.avatar" [alt]="p.name" draggable="false" />
               <span>{{ p.short }}</span>
             </button>
@@ -78,10 +80,16 @@ const TINT: Record<string, string> = {
           <button type="button" class="ctrl" (click)="showClues = !showClues">
             <ion-icon name="list-outline"></ion-icon><span>Indices</span>
           </button>
+          <button type="button" class="ctrl" [class.active]="game.notesMode()" (click)="game.toggleNotesMode()">
+            <ion-icon name="create-outline"></ion-icon><span>Rature</span>
+          </button>
           <button type="button" class="ctrl" (click)="game.hint()">
             <ion-icon name="bulb-outline"></ion-icon><span>Indice</span>
           </button>
         </div>
+        @if (game.notesMode()) {
+          <p class="notehint">Mode rature&nbsp;: choisis une personne, puis touche les cases où elle ne peut pas être (✕).</p>
+        }
 
         @if (showClues) {
           <ol class="clues">
@@ -90,8 +98,15 @@ const TINT: Record<string, string> = {
         }
       }
 
+      @if (dragId(); as did) {
+        <img class="drag-ghost" [src]="avatar(did)" [style.left.px]="dragX()" [style.top.px]="dragY()" alt="" />
+      }
+
       @if (game.culprit(); as culprit) {
         <div class="reveal-overlay">
+          <div class="confetti">
+            @for (i of confettiBits; track i) { <span [style.left.%]="i.l" [style.background]="i.c" [style.animation-delay.s]="i.d"></span> }
+          </div>
           <div class="reveal-card">
             <div class="stamp">AFFAIRE RÉSOLUE</div>
             <img class="culprit" [src]="avatar(culprit.id)" [alt]="culprit.name" />
@@ -169,6 +184,17 @@ const TINT: Record<string, string> = {
       transform: rotate(-7deg); padding: 2px 10px; border-radius: 6px; font-weight: 700; letter-spacing: 2px;
       font-size: 0.7rem; margin-bottom: 10px; }
     .acts { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+    .ctrl.active { background: var(--ion-color-primary); color: var(--ion-color-primary-contrast); }
+    .xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: var(--ion-color-danger); font-weight: 700; font-size: 1.1rem; pointer-events: none; opacity: 0.85; z-index: 3; }
+    .notehint { max-width: 420px; margin: 0 auto 10px; font-size: 12px; color: #9a8fc0; text-align: center; }
+    .drag-ghost { position: fixed; width: 54px; height: 60px; transform: translate(-50%, -60%);
+      pointer-events: none; z-index: 60; filter: drop-shadow(0 4px 6px #000a); }
+    .confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+    .confetti span { position: absolute; top: -12px; width: 8px; height: 12px; border-radius: 2px;
+      animation: fall 2.4s linear infinite; }
+    @keyframes fall { 0% { transform: translateY(-20px) rotate(0); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(540deg); opacity: 0.9; } }
   `],
 })
 export class DeductionPage implements OnInit {
@@ -181,8 +207,56 @@ export class DeductionPage implements OnInit {
   showClues = true;
   copied = false;
 
+  // Glisser-déposer (pointeur : souris + tactile)
+  readonly dragId = signal<string | null>(null);
+  readonly dragX = signal(0);
+  readonly dragY = signal(0);
+  private candidate: string | null = null;
+  private startX = 0;
+  private startY = 0;
+  private moved = false;
+
+  readonly confettiBits = Array.from({ length: 36 }, () => ({
+    l: Math.round(Math.random() * 100),
+    c: ['#d4af37', '#6c5ce7', '#eb445a', '#2dd36f', '#f3d57a'][Math.floor(Math.random() * 5)],
+    d: +(Math.random() * 0.8).toFixed(2),
+  }));
+
   constructor() {
-    addIcons({ arrowBack, refreshOutline, bulbOutline, listOutline });
+    addIcons({ arrowBack, refreshOutline, bulbOutline, listOutline, createOutline });
+  }
+
+  dragStart(id: string, ev: PointerEvent): void {
+    this.candidate = id;
+    this.startX = ev.clientX;
+    this.startY = ev.clientY;
+    this.moved = false;
+    this.dragX.set(ev.clientX);
+    this.dragY.set(ev.clientY);
+  }
+
+  @HostListener('document:pointermove', ['$event'])
+  onMove(ev: PointerEvent): void {
+    if (!this.candidate) return;
+    if (!this.moved && Math.hypot(ev.clientX - this.startX, ev.clientY - this.startY) > 6) {
+      this.moved = true;
+      this.dragId.set(this.candidate);
+    }
+    if (this.moved) { this.dragX.set(ev.clientX); this.dragY.set(ev.clientY); }
+  }
+
+  @HostListener('document:pointerup', ['$event'])
+  onUp(ev: PointerEvent): void {
+    const id = this.candidate;
+    this.candidate = null;
+    if (!id) return;
+    if (this.moved) {
+      this.dragId.set(null);
+      const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null;
+      const cell = el?.closest('.cell') as HTMLElement | null;
+      if (cell?.dataset['r'] != null) this.game.placePerson(id, +cell.dataset['r']!, +cell.dataset['c']!);
+    }
+    // sinon : simple tap, géré par (click)
   }
 
   ngOnInit(): void {
@@ -220,6 +294,7 @@ export class DeductionPage implements OnInit {
     if (!c) return [];
     const conflicts = this.game.conflicts();
     const sel = this.game.selected();
+    const elimSet = this.game.eliminatedForSelected();
     const seen = new Set<string>();
     const out: CellVm[] = [];
     for (let r = 0; r < c.n; r++) {
@@ -237,6 +312,7 @@ export class DeductionPage implements OnInit {
           wallR: col < c.n - 1 && c.rooms[r][col] !== c.rooms[r][col + 1],
           wallB: r < c.n - 1 && c.rooms[r][col] !== c.rooms[r + 1][col],
           canPlace: !blocked && !!sel,
+          elim: !!sel && !occ && elimSet.has(`${r},${col}`),
         });
       }
     }

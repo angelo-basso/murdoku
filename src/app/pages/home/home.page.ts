@@ -69,35 +69,6 @@ import { StorageService } from '../../core/services/storage.service';
         </div>
         <button type="button" class="tuto" (click)="openDeduction('manoir-6')">Essayer le didacticiel →</button>
       </section>
-
-      <h2 class="section">Mode Sudoku</h2>
-      <div class="cases">
-        @for (c of cases; track c.id) {
-          <button type="button" class="case-card" (click)="open(c)">
-            <div class="head">
-              <span class="title">{{ c.title }}</span>
-              @if (solved().includes(c.id)) {
-                <ion-icon class="solved" name="checkmark-circle"></ion-icon>
-              }
-            </div>
-            <div class="meta">
-              <ion-badge [color]="difficultyColor(c)">{{
-                c.difficulty
-              }}</ion-badge>
-              <ion-note>Grille {{ c.size }}×{{ c.size }}</ion-note>
-              <ion-note>{{ c.suspects.length }} suspects</ion-note>
-            </div>
-            <p class="victim">
-              Victime&nbsp;: <strong>{{ c.victim }}</strong> — {{ c.location }}
-            </p>
-            <div class="avatars">
-              @for (s of c.suspects; track s.id) {
-                <img class="avatar" [src]="s.avatar" [alt]="s.name" [title]="s.name" />
-              }
-            </div>
-          </button>
-        }
-      </div>
     </ion-content>
   `,
   styles: [

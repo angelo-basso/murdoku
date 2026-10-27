@@ -9,17 +9,40 @@ export class DeductionGameService {
   private readonly caseSig = signal<DeductionCase | null>(null);
   private readonly placeSig = signal<Placement>({});
   private readonly selectedSig = signal<string | null>(null);
+  private readonly notesModeSig = signal(false);
+  private readonly elimSig = signal<Record<string, Set<string>>>({});
   private solutionCache: Placement | null = null;
 
   readonly currentCase = this.caseSig.asReadonly();
   readonly placement = this.placeSig.asReadonly();
   readonly selected = this.selectedSig.asReadonly();
+  readonly notesMode = this.notesModeSig.asReadonly();
+  readonly elim = this.elimSig.asReadonly();
 
   start(c: DeductionCase): void {
     this.caseSig.set(c);
     this.placeSig.set(Object.fromEntries(c.people.map((p) => [p.id, null])));
     this.selectedSig.set(null);
+    this.notesModeSig.set(false);
+    this.elimSig.set(Object.fromEntries(c.people.map((p) => [p.id, new Set<string>()])));
     this.solutionCache = this.solver.solution(c);
+  }
+
+  toggleNotesMode(): void { this.notesModeSig.update((v) => !v); }
+
+  /** Marque/retire « cette personne ne peut pas être ici » (rature logigramme). */
+  toggleElim(personId: string, r: number, col: number): void {
+    const map = this.elimSig();
+    const set = new Set(map[personId] ?? []);
+    const key = `${r},${col}`;
+    if (set.has(key)) set.delete(key); else set.add(key);
+    this.elimSig.set({ ...map, [personId]: set });
+  }
+
+  /** Cases raturées pour la personne sélectionnée. */
+  eliminatedForSelected(): Set<string> {
+    const sel = this.selectedSig();
+    return sel ? this.elimSig()[sel] ?? new Set() : new Set();
   }
 
   /** Personne occupant une case, ou null. */
@@ -39,10 +62,17 @@ export class DeductionGameService {
     this.selectedSig.update((cur) => (cur === id ? null : id));
   }
 
-  /** Clic sur une case : pose la personne sélectionnée, ou retire l'occupant. */
+  /** Clic sur une case : rature (mode notes), pose la personne sélectionnée, ou retire l'occupant. */
   tapCell(r: number, col: number): void {
     const c = this.caseSig();
     if (!c || !this.occupiable(r, col)) return;
+
+    if (this.notesModeSig()) {
+      const sel = this.selectedSig();
+      if (sel) this.toggleElim(sel, r, col);
+      return;
+    }
+
     const occupant = this.occupantAt(r, col);
     const sel = this.selectedSig();
 
@@ -59,6 +89,18 @@ export class DeductionGameService {
     }
   }
 
+  /** Place explicitement une personne sur une case (glisser-déposer). */
+  placePerson(id: string, r: number, col: number): void {
+    const c = this.caseSig();
+    if (!c || !this.occupiable(r, col)) return;
+    const place = { ...this.placeSig() };
+    const occupant = this.occupantAt(r, col);
+    if (occupant && occupant !== id) place[occupant] = null;
+    place[id] = [r, col];
+    this.placeSig.set(place);
+    this.selectedSig.set(null);
+  }
+
   removePerson(id: string): void {
     const place = { ...this.placeSig() };
     place[id] = null;
@@ -67,7 +109,10 @@ export class DeductionGameService {
 
   reset(): void {
     const c = this.caseSig();
-    if (c) this.placeSig.set(Object.fromEntries(c.people.map((p) => [p.id, null])));
+    if (c) {
+      this.placeSig.set(Object.fromEntries(c.people.map((p) => [p.id, null])));
+      this.elimSig.set(Object.fromEntries(c.people.map((p) => [p.id, new Set<string>()])));
+    }
     this.selectedSig.set(null);
   }
 
