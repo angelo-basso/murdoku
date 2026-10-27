@@ -34,9 +34,7 @@ import { StorageService } from '../../core/services/storage.service';
   template: `
     <ion-header [translucent]="true">
       <ion-toolbar>
-        <ion-title>
-          <span class="brand"><ion-icon name="skull"></ion-icon> Murdoku</span>
-        </ion-title>
+        <ion-title>Les affaires</ion-title>
       </ion-toolbar>
     </ion-header>
 

@@ -51,7 +51,7 @@ interface CellVm {
           } @else if (cell.notes.length) {
             <span class="notes">
               @for (n of cell.notes; track n) {
-                <span class="note">{{ emojiOf(n) }}</span>
+                <img class="note" [src]="avatarOf(n)" [alt]="emojiOf(n)" />
               }
             </span>
           }
@@ -98,6 +98,7 @@ interface CellVm {
       }
       .cell.given {
         background: var(--murdoku-cell-given-bg);
+        box-shadow: inset 0 0 0 1.5px rgba(212, 175, 55, 0.3);
       }
       .cell.peer {
         background: var(--murdoku-cell-peer-bg);
@@ -124,10 +125,15 @@ interface CellVm {
       }
       .glyph {
         pointer-events: none;
-        width: 82%;
-        height: 82%;
+        width: 86%;
+        height: 86%;
         object-fit: contain;
         filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+      }
+      /* Saisies du joueur plus petites que les indices verrouillés */
+      .cell:not(.given) .glyph {
+        width: 68%;
+        height: 68%;
       }
       .loupe {
         position: absolute;
@@ -146,11 +152,10 @@ interface CellVm {
         box-sizing: border-box;
       }
       .note {
-        font-size: 0.55rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0.8;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        opacity: 0.9;
       }
     `,
   ],
@@ -207,6 +212,10 @@ export class BoardComponent {
 
   emojiOf(id: number): string {
     return this.murdoku.currentCase()?.suspects.find((x) => x.id === id)?.emoji ?? '';
+  }
+
+  avatarOf(id: number): string {
+    return this.murdoku.currentCase()?.suspects.find((x) => x.id === id)?.avatar ?? '';
   }
 
   onSelect(cell: CellVm): void {
