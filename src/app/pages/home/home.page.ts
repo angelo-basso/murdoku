@@ -14,6 +14,7 @@ import {
 import { addIcons } from 'ionicons';
 import { checkmarkCircle, search, skull } from 'ionicons/icons';
 import { CASES } from '../../core/data/cases';
+import { DEDUCTION_CASES } from '../../core/data/deduction-cases';
 import { MurdokuCase } from '../../core/models/murdoku.models';
 import { StorageService } from '../../core/services/storage.service';
 
@@ -41,10 +42,30 @@ import { StorageService } from '../../core/services/storage.service';
     <ion-content [fullscreen]="true" class="ion-padding">
       <img class="logo" src="assets/brand/logo.svg" alt="Murdoku — Sudoku d'enquête" />
       <p class="tagline">
-        Résolvez la grille&nbsp;: chaque symbole est un suspect. Complétez
-        l'enquête pour démasquer le coupable&nbsp;🔍
+        Menez l'enquête&nbsp;: placez les suspects d'après les indices et
+        démasquez le coupable&nbsp;🔍
       </p>
 
+      <!-- Mode Enquête (vraies règles Murdoku, déduction) -->
+      @for (d of deductionCases; track d.id) {
+        <button type="button" class="case-card featured" (click)="openDeduction(d.id)">
+          <div class="head">
+            <span class="title">🕵️ {{ d.title }}</span>
+            <ion-badge color="secondary">enquête</ion-badge>
+          </div>
+          <p class="victim">
+            Déduction&nbsp;: placez {{ d.people.length }} personnes (1 par ligne &amp;
+            colonne) d'après les indices. Le coupable finit seul avec la victime.
+          </p>
+          <div class="avatars">
+            @for (p of d.people; track p.id) {
+              <img class="avatar pix" [src]="'assets/characters/' + p.id + '.svg'" [alt]="p.name" [title]="p.name" />
+            }
+          </div>
+        </button>
+      }
+
+      <h2 class="section">Mode Sudoku</h2>
       <div class="cases">
         @for (c of cases; track c.id) {
           <button type="button" class="case-card" (click)="open(c)">
@@ -151,6 +172,21 @@ import { StorageService } from '../../core/services/storage.service';
         height: 30px;
         object-fit: contain;
       }
+      .avatar.pix {
+        width: 38px;
+        height: 42px;
+      }
+      .featured {
+        border-color: var(--ion-color-secondary);
+        background: linear-gradient(180deg, #2a2250 0%, var(--ion-card-background) 70%);
+      }
+      .section {
+        color: var(--ion-color-primary);
+        font-family: var(--murdoku-font);
+        font-size: 1rem;
+        margin: 20px 0 10px;
+        opacity: 0.9;
+      }
     `,
   ],
 })
@@ -159,6 +195,7 @@ export class HomePage implements OnInit {
   private storage = inject(StorageService);
 
   readonly cases = CASES;
+  readonly deductionCases = DEDUCTION_CASES;
   readonly solved = signal<string[]>([]);
 
   constructor() {
@@ -171,6 +208,10 @@ export class HomePage implements OnInit {
 
   ionViewWillEnter(): void {
     this.storage.getSolved().then((s) => this.solved.set(s));
+  }
+
+  openDeduction(id: string): void {
+    this.router.navigate(['/deduction', id]);
   }
 
   difficultyColor(c: MurdokuCase): string {
