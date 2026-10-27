@@ -12,6 +12,11 @@ export const routes: Routes = [
       import('./pages/game/game.page').then((m) => m.GamePage),
   },
   {
+    path: 'deduction/gen/:code',
+    loadComponent: () =>
+      import('./pages/deduction/deduction.page').then((m) => m.DeductionPage),
+  },
+  {
     path: 'deduction/:caseId',
     loadComponent: () =>
       import('./pages/deduction/deduction.page').then((m) => m.DeductionPage),

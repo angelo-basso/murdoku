@@ -99,6 +99,21 @@ export class DeductionSolverService {
     return { solutions };
   }
 
+  /** Un indice est-il vérifié par un placement complet donné ? */
+  clueHolds(c: DeductionCase, clue: Clue, place: Placement): boolean {
+    if (clue.who) {
+      const p = place[clue.who];
+      if (!p) return false;
+      return this.unaryOk(c, clue, clue.who, p[0], p[1]);
+    }
+    return this.binaryOk(c, clue, place);
+  }
+
+  /** Voisins orthogonaux d'une case. */
+  neighborCells(c: DeductionCase, r: number, col: number): [number, number][] {
+    return this.neighbors(c, r, col);
+  }
+
   /** La solution unique (null si l'affaire est mal posée). */
   solution(c: DeductionCase): Placement | null {
     const { solutions } = this.solve(c);

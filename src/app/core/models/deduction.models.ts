@@ -3,6 +3,8 @@ export interface Furniture {
   color?: string;
 }
 
+export type Difficulty = 'facile' | 'moyen' | 'difficile';
+
 export interface Person {
   id: string;
   name: string;
@@ -46,6 +48,10 @@ export interface DeductionCase {
   blocking: string[];
   people: Person[];
   clues: Clue[];
+  /** Teinte de fond par pièce (identifiant → couleur). */
+  tints?: Record<string, string>;
+  /** Code de partage (thème.taille.difficulté.graine) pour rejouer l'affaire. */
+  share?: string;
 }
 
 export type Placement = Record<string, [number, number] | null>;

@@ -8,6 +8,7 @@ import { addIcons } from 'ionicons';
 import { arrowBack, bulbOutline, refreshOutline, listOutline } from 'ionicons/icons';
 import { findDeductionCase } from '../../core/data/deduction-cases';
 import { DeductionGameService } from '../../core/services/deduction-game.service';
+import { DeductionGeneratorService } from '../../core/services/deduction-generator.service';
 import { DeductionSolverService } from '../../core/services/deduction-solver.service';
 
 interface CellVm {
@@ -41,6 +42,12 @@ const TINT: Record<string, string> = {
 
     <ion-content [fullscreen]="true" class="ion-padding">
       @if (game.currentCase(); as c) {
+        @if (share) {
+          <div class="share">
+            <span>Code&nbsp;: <code>{{ share }}</code></span>
+            <button type="button" (click)="copyShare()">{{ copied ? 'copié ✓' : 'copier' }}</button>
+          </div>
+        }
         <!-- Plateau -->
         <div class="board" [style.--n]="c.n">
           @for (cell of cells(); track cell.r + '-' + cell.col) {
@@ -100,6 +107,11 @@ const TINT: Record<string, string> = {
     </ion-content>
   `,
   styles: [`
+    .share { display: flex; align-items: center; justify-content: center; gap: 8px;
+      max-width: 420px; margin: 0 auto 8px; font-size: 12px; color: #9a8fc0; }
+    .share code { color: var(--ion-color-primary); background: #0004; padding: 2px 6px; border-radius: 5px; }
+    .share button { background: transparent; border: 1px solid rgba(212,175,55,0.4); color: var(--ion-color-primary);
+      border-radius: 6px; padding: 2px 8px; font-size: 11px; }
     .board {
       display: grid; grid-template-columns: repeat(var(--n), 1fr);
       width: 100%; max-width: 420px; aspect-ratio: 1/1; margin: 0 auto 14px;
@@ -162,20 +174,37 @@ const TINT: Record<string, string> = {
 export class DeductionPage implements OnInit {
   game = inject(DeductionGameService);
   private solver = inject(DeductionSolverService);
+  private gen = inject(DeductionGeneratorService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   showClues = true;
+  copied = false;
 
   constructor() {
     addIcons({ arrowBack, refreshOutline, bulbOutline, listOutline });
   }
 
   ngOnInit(): void {
+    const code = this.route.snapshot.paramMap.get('code');
+    if (code) {
+      const opts = this.gen.parseCode(code);
+      const c = opts ? this.gen.generate(opts) : null;
+      if (!c) { this.router.navigate(['/home']); return; }
+      this.game.start(c);
+      return;
+    }
     const id = this.route.snapshot.paramMap.get('caseId');
     const c = id ? findDeductionCase(id) : undefined;
     if (!c) { this.router.navigate(['/home']); return; }
     this.game.start(c);
+  }
+
+  get share(): string | undefined { return this.game.currentCase()?.share; }
+  async copyShare(): Promise<void> {
+    const s = this.share;
+    if (!s) return;
+    try { await navigator.clipboard.writeText(s); this.copied = true; setTimeout(() => (this.copied = false), 1500); } catch { /* ignore */ }
   }
 
   avatar(id: string): string { return `assets/characters/${id}.svg`; }
@@ -202,7 +231,7 @@ export class DeductionPage implements OnInit {
         const blocked = !this.solver.occupiable(c, r, col);
         out.push({
           r, col, room, roomName: c.roomNames[room], firstOfRoom: first,
-          tint: TINT[room] ?? '#241c42', furn: this.furnPath(c.furniture[r][col]), blocked,
+          tint: c.tints?.[room] ?? TINT[room] ?? '#241c42', furn: this.furnPath(c.furniture[r][col]), blocked,
           occupant: occ, occAvatar: occ ? this.avatar(occ) : null, occName: occPerson?.name ?? null,
           conflict: !!occ && conflicts.has(occ),
           wallR: col < c.n - 1 && c.rooms[r][col] !== c.rooms[r][col + 1],
