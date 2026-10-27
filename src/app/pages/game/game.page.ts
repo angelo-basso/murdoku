@@ -113,7 +113,7 @@ import { MurdokuService } from '../../core/services/murdoku.service';
         <div class="reveal-overlay">
           <div class="reveal-card">
             <div class="stamp">AFFAIRE RÉSOLUE</div>
-            <div class="culprit-emoji">{{ culprit.emoji }}</div>
+            <img class="culprit-emoji" [src]="culprit.avatar" [alt]="culprit.name" />
             <h2>Le coupable est&nbsp;: {{ culprit.name }}</h2>
             <p class="motive">Mobile&nbsp;: {{ culprit.motive }}.</p>
             <p class="recap">
@@ -221,8 +221,10 @@ import { MurdokuService } from '../../core/services/murdoku.service';
         margin-bottom: 12px;
       }
       .culprit-emoji {
-        font-size: 4rem;
-        line-height: 1;
+        width: 110px;
+        height: 110px;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
       }
       .reveal-card h2 {
         font-family: var(--murdoku-font);

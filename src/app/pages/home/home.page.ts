@@ -41,9 +41,10 @@ import { StorageService } from '../../core/services/storage.service';
     </ion-header>
 
     <ion-content [fullscreen]="true" class="ion-padding">
+      <img class="logo" src="assets/brand/logo.svg" alt="Murdoku — Sudoku d'enquête" />
       <p class="tagline">
         Résolvez la grille&nbsp;: chaque symbole est un suspect. Complétez
-        l'enquête pour démasquer le coupable 🔍
+        l'enquête pour démasquer le coupable&nbsp;🔍
       </p>
 
       <div class="cases">
@@ -67,7 +68,7 @@ import { StorageService } from '../../core/services/storage.service';
             </p>
             <div class="avatars">
               @for (s of c.suspects; track s.id) {
-                <span class="avatar" [title]="s.name">{{ s.emoji }}</span>
+                <img class="avatar" [src]="s.avatar" [alt]="s.name" [title]="s.name" />
               }
             </div>
           </button>
@@ -77,6 +78,12 @@ import { StorageService } from '../../core/services/storage.service';
   `,
   styles: [
     `
+      .logo {
+        display: block;
+        width: 100%;
+        max-width: 300px;
+        margin: 6px auto 2px;
+      }
       .brand {
         display: inline-flex;
         align-items: center;
@@ -88,6 +95,7 @@ import { StorageService } from '../../core/services/storage.service';
         opacity: 0.85;
         font-size: 0.95rem;
         margin: 4px 0 18px;
+        text-align: center;
       }
       .cases {
         display: flex;
@@ -138,8 +146,12 @@ import { StorageService } from '../../core/services/storage.service';
       .avatars {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
-        font-size: 1.35rem;
+        gap: 5px;
+      }
+      .avatar {
+        width: 30px;
+        height: 30px;
+        object-fit: contain;
       }
     `,
   ],

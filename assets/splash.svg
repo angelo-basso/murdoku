@@ -1,0 +1,30 @@
+<svg width="2732" height="2732" viewBox="0 0 2732 2732" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#2a1d4d"/>
+      <stop offset="55%" stop-color="#17102b"/>
+      <stop offset="100%" stop-color="#0d0a1c"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3d57a"/><stop offset="50%" stop-color="#d4af37"/><stop offset="100%" stop-color="#a8841f"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="38%" cy="32%" r="80%">
+      <stop offset="0%" stop-color="#241c42"/><stop offset="100%" stop-color="#120d24"/>
+    </radialGradient>
+    <clipPath id="lc"><circle cx="1366" cy="1150" r="250"/></clipPath>
+  </defs>
+  <rect width="2732" height="2732" fill="url(#bg)"/>
+  <g transform="rotate(45 1366 1150)">
+    <rect x="1336" y="1380" width="60" height="320" rx="30" fill="url(#gold)"/>
+    <rect x="1320" y="1660" width="92" height="92" rx="28" fill="url(#gold)"/>
+  </g>
+  <circle cx="1366" cy="1150" r="272" fill="url(#gold)"/>
+  <circle cx="1366" cy="1150" r="250" fill="url(#glass)"/>
+  <g clip-path="url(#lc)" stroke="#d4af37" stroke-opacity="0.5" stroke-width="6">
+    <line x1="1200" y1="1083" x2="1532" y2="1083"/><line x1="1200" y1="1150" x2="1532" y2="1150"/><line x1="1200" y1="1217" x2="1532" y2="1217"/>
+    <line x1="1227" y1="1017" x2="1227" y2="1283"/><line x1="1294" y1="1017" x2="1294" y2="1283"/><line x1="1361" y1="1017" x2="1361" y2="1283"/><line x1="1428" y1="1017" x2="1428" y2="1283"/>
+  </g>
+  <g clip-path="url(#lc)"><rect x="1294" y="1083" width="67" height="67" fill="#eb445a" fill-opacity="0.9"/><circle cx="1327" cy="1116" r="16" fill="#fff"/></g>
+  <text x="1366" y="1720" text-anchor="middle" font-family="Georgia, serif" font-size="196" font-weight="700" letter-spacing="14" fill="url(#gold)">MURDOKU</text>
+  <text x="1366" y="1800" text-anchor="middle" font-family="Georgia, serif" font-size="52" letter-spacing="22" fill="#9a8fc0">SUDOKU D'ENQU&#202;TE</text>
+</svg>

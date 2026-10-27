@@ -1,0 +1,51 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="42%" cy="36%" r="85%">
+      <stop offset="0%" stop-color="#2a1d4d"/>
+      <stop offset="55%" stop-color="#17102b"/>
+      <stop offset="100%" stop-color="#0d0a1c"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3d57a"/>
+      <stop offset="45%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#a8841f"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="38%" cy="32%" r="80%">
+      <stop offset="0%" stop-color="#241c42"/>
+      <stop offset="100%" stop-color="#120d24"/>
+    </radialGradient>
+    <clipPath id="lensClip"><circle cx="455" cy="445" r="196"/></clipPath>
+  </defs>
+
+  <!-- Fond plein (pas de transparence : requis iOS) -->
+  <rect width="1024" height="1024" rx="0" fill="url(#bg)"/>
+
+  <!-- Poignée de la loupe -->
+  <g transform="rotate(45 455 445)">
+    <rect x="432" y="630" width="46" height="250" rx="23" fill="url(#gold)"/>
+    <rect x="420" y="846" width="70" height="70" rx="22" fill="url(#gold)"/>
+  </g>
+
+  <!-- Anneau + verre -->
+  <circle cx="455" cy="445" r="214" fill="url(#gold)"/>
+  <circle cx="455" cy="445" r="196" fill="url(#glass)"/>
+
+  <!-- Mini-grille Sudoku vue dans la loupe -->
+  <g clip-path="url(#lensClip)" stroke="#d4af37" stroke-opacity="0.5" stroke-width="5">
+    <line x1="325" y1="380" x2="585" y2="380"/>
+    <line x1="325" y1="445" x2="585" y2="445"/>
+    <line x1="325" y1="510" x2="585" y2="510"/>
+    <line x1="347" y1="315" x2="347" y2="575"/>
+    <line x1="412" y1="315" x2="412" y2="575"/>
+    <line x1="477" y1="315" x2="477" y2="575"/>
+    <line x1="542" y1="315" x2="542" y2="575"/>
+  </g>
+  <!-- Case "coupable" mise en évidence -->
+  <g clip-path="url(#lensClip)">
+    <rect x="412" y="380" width="65" height="65" fill="#eb445a" fill-opacity="0.9"/>
+    <circle cx="444" cy="412" r="15" fill="#fff"/>
+  </g>
+
+  <!-- Reflet du verre -->
+  <path d="M352 356 A196 196 0 0 1 470 292" stroke="#f2ecff" stroke-opacity="0.28" stroke-width="16" stroke-linecap="round" fill="none"/>
+</svg>

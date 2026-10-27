@@ -1,0 +1,35 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3d57a"/>
+      <stop offset="45%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#a8841f"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="38%" cy="32%" r="80%">
+      <stop offset="0%" stop-color="#241c42"/>
+      <stop offset="100%" stop-color="#120d24"/>
+    </radialGradient>
+    <clipPath id="lensClipF"><circle cx="470" cy="455" r="150"/></clipPath>
+  </defs>
+  <!-- Motif centré dans la zone de sécurité (adaptive) -->
+  <g transform="rotate(45 470 455)">
+    <rect x="451" y="595" width="38" height="190" rx="19" fill="url(#gold)"/>
+    <rect x="440" y="760" width="60" height="60" rx="19" fill="url(#gold)"/>
+  </g>
+  <circle cx="470" cy="455" r="164" fill="url(#gold)"/>
+  <circle cx="470" cy="455" r="150" fill="url(#glass)"/>
+  <g clip-path="url(#lensClipF)" stroke="#d4af37" stroke-opacity="0.5" stroke-width="4">
+    <line x1="370" y1="405" x2="570" y2="405"/>
+    <line x1="370" y1="455" x2="570" y2="455"/>
+    <line x1="370" y1="505" x2="570" y2="505"/>
+    <line x1="387" y1="355" x2="387" y2="555"/>
+    <line x1="437" y1="355" x2="437" y2="555"/>
+    <line x1="487" y1="355" x2="487" y2="555"/>
+    <line x1="537" y1="355" x2="537" y2="555"/>
+  </g>
+  <g clip-path="url(#lensClipF)">
+    <rect x="437" y="405" width="50" height="50" fill="#eb445a" fill-opacity="0.92"/>
+    <circle cx="462" cy="430" r="12" fill="#fff"/>
+  </g>
+  <path d="M382 372 A150 150 0 0 1 472 323" stroke="#f2ecff" stroke-opacity="0.3" stroke-width="13" stroke-linecap="round" fill="none"/>
+</svg>

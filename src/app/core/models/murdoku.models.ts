@@ -13,6 +13,8 @@ export interface Suspect {
   id: number;
   name: string;
   emoji: string;
+  /** Chemin de l'avatar SVG (assets/suspects/<slug>.svg). */
+  avatar: string;
   motive: string;
 }
 

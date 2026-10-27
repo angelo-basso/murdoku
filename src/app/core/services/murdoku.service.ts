@@ -154,12 +154,14 @@ export class MurdokuService {
     void this.persist();
   }
 
-  /** Indice : révèle la bonne valeur dans la case sélectionnée. */
+  /** Indice : révèle la bonne valeur dans une case vide (la sélection si elle l'est). */
   hint(): void {
     const s = this.stateSig();
     const sel = this.selectedSig();
     if (!s || s.completed) return;
-    const target = sel && !this.isGiven(sel.row, sel.col) ? sel : this.firstEmpty(s);
+    const selEmpty =
+      sel && !this.isGiven(sel.row, sel.col) && s.current[sel.row][sel.col] === 0;
+    const target = selEmpty ? sel : this.firstEmpty(s);
     if (!target) return;
     const { row, col } = target;
     const current = this.cloneCurrent(s);

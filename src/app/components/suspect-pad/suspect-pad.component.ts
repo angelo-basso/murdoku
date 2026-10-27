@@ -15,7 +15,7 @@ import { MurdokuService } from '../../core/services/murdoku.service';
           [class.done]="counts()[s.id] >= size()"
           (click)="onPick(s.id)"
         >
-          <span class="emoji">{{ s.emoji }}</span>
+          <img class="emoji" [src]="s.avatar" [alt]="s.name" draggable="false" />
           <span class="name">{{ s.name }}</span>
         </button>
       }
@@ -55,8 +55,9 @@ import { MurdokuService } from '../../core/services/murdoku.service';
         opacity: 0.4;
       }
       .emoji {
-        font-size: 1.5rem;
-        line-height: 1;
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
       }
       .name {
         font-size: 0.6rem;

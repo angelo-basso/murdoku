@@ -8,6 +8,7 @@ interface CellVm {
   col: number;
   value: number;
   emoji: string;
+  avatar: string;
   given: boolean;
   selected: boolean;
   peer: boolean;
@@ -46,7 +47,7 @@ interface CellVm {
           (click)="onSelect(cell)"
         >
           @if (cell.value > 0) {
-            <span class="glyph">{{ cell.emoji }}</span>
+            <img class="glyph" [src]="cell.avatar" [alt]="cell.emoji" draggable="false" />
           } @else if (cell.notes.length) {
             <span class="notes">
               @for (n of cell.notes; track n) {
@@ -108,9 +109,8 @@ interface CellVm {
         background: var(--murdoku-cell-selected-bg);
       }
       .cell.error .glyph {
-        filter: grayscale(1);
         outline: 2px solid var(--murdoku-error);
-        border-radius: 6px;
+        border-radius: 50%;
       }
       .cell.culprit {
         background: var(--murdoku-culprit-bg);
@@ -124,6 +124,10 @@ interface CellVm {
       }
       .glyph {
         pointer-events: none;
+        width: 82%;
+        height: 82%;
+        object-fit: contain;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
       }
       .loupe {
         position: absolute;
@@ -184,6 +188,7 @@ export class BoardComponent {
           col,
           value,
           emoji: value > 0 ? suspects.get(value)?.emoji ?? '?' : '',
+          avatar: value > 0 ? suspects.get(value)?.avatar ?? '' : '',
           given: s.given[row][col] !== 0,
           selected: isSel,
           peer,

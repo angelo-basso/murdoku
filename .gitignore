@@ -15,6 +15,10 @@
 *.log
 .DS_Store
 
+# Prévisualisations de design (générées localement)
+/shots
+/contact-sheet.png
+
 # Editors
 .idea
 .vscode
