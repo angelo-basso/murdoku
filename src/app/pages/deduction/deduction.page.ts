@@ -128,29 +128,35 @@ const TINT: Record<string, string> = {
     .share button { background: transparent; border: 1px solid rgba(212,175,55,0.4); color: var(--ion-color-primary);
       border-radius: 6px; padding: 2px 8px; font-size: 11px; }
     .board {
-      display: grid; grid-template-columns: repeat(var(--n), 1fr);
+      display: grid;
+      grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+      grid-template-rows: repeat(var(--n), minmax(0, 1fr));
       width: 100%; max-width: 420px; aspect-ratio: 1/1; margin: 0 auto 14px;
       background: #0d0a1c; border: 3px solid var(--ion-color-primary);
-      border-radius: 8px; overflow: hidden;
+      border-radius: 8px; overflow: hidden; touch-action: none;
     }
     .cell {
       position: relative; padding: 0; margin: 0; border: 1px solid #0007;
+      min-width: 0; min-height: 0; overflow: hidden;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .cell.wall-r { border-right: 3px solid var(--ion-color-primary); }
     .cell.wall-b { border-bottom: 3px solid var(--ion-color-primary); }
     .cell.blocked { cursor: default; }
-    .cell.blocked::after { content: ''; position: absolute; inset: 0; background: #0003; }
+    /* Cases bloquées : hachures nettes + mobilier grisé */
+    .cell.blocked::after { content: ''; position: absolute; inset: 0; z-index: 2;
+      background: repeating-linear-gradient(45deg, transparent 0 5px, rgba(0,0,0,0.42) 5px 7px), rgba(0,0,0,0.3); }
+    .cell.blocked .furn { opacity: 0.5; filter: grayscale(0.5); }
     .cell.place:hover { box-shadow: inset 0 0 0 2px var(--ion-color-primary); }
     .cell.conflict .token { outline: 2px solid var(--ion-color-danger); border-radius: 4px; }
     .room-label {
       position: absolute; top: 1px; left: 2px; font-size: 6.5px; line-height: 1;
-      color: var(--ion-color-primary); opacity: 0.85; z-index: 2; pointer-events: none;
+      color: var(--ion-color-primary); opacity: 0.85; z-index: 3; pointer-events: none;
       font-family: Georgia, serif;
     }
     .furn { position: absolute; width: 86%; height: 86%; object-fit: contain; opacity: 0.92; }
-    .token { position: relative; width: 82%; height: 82%; object-fit: contain; z-index: 1;
-      filter: drop-shadow(0 1px 2px #000a); }
+    .token { position: absolute; inset: 0; margin: auto; width: 80%; height: 80%;
+      object-fit: contain; z-index: 2; touch-action: none; filter: drop-shadow(0 1px 2px #000a); }
     .tray {
       display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;
       max-width: 420px; margin: 0 auto 12px;
@@ -159,6 +165,7 @@ const TINT: Record<string, string> = {
       display: flex; flex-direction: column; align-items: center; gap: 2px;
       padding: 5px 2px; border-radius: 9px; border: 1px solid rgba(212,175,55,0.3);
       background: var(--murdoku-cell-given-bg); color: var(--ion-text-color); cursor: pointer;
+      touch-action: none;
     }
     .person img { width: 100%; max-width: 46px; object-fit: contain; }
     .person span { font-size: 8.5px; text-align: center; opacity: 0.85; }
@@ -227,6 +234,7 @@ export class DeductionPage implements OnInit {
   }
 
   dragStart(id: string, ev: PointerEvent): void {
+    ev.preventDefault();
     this.candidate = id;
     this.startX = ev.clientX;
     this.startY = ev.clientY;
@@ -242,7 +250,11 @@ export class DeductionPage implements OnInit {
       this.moved = true;
       this.dragId.set(this.candidate);
     }
-    if (this.moved) { this.dragX.set(ev.clientX); this.dragY.set(ev.clientY); }
+    if (this.moved) {
+      ev.preventDefault(); // empêche le scroll pendant le drag (mobile)
+      this.dragX.set(ev.clientX);
+      this.dragY.set(ev.clientY);
+    }
   }
 
   @HostListener('document:pointerup', ['$event'])
