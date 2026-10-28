@@ -3,7 +3,7 @@ export interface Furniture {
   color?: string;
 }
 
-export type Difficulty = 'facile' | 'moyen' | 'difficile';
+export type Difficulty = 'facile' | 'moyen' | 'intermediaire' | 'difficile' | 'expert';
 
 export interface Person {
   id: string;

@@ -13,7 +13,8 @@
     "cap:sync": "cap sync",
     "cap:android": "cap open android",
     "cap:ios": "cap open ios",
-    "assets": "node tools/gen-avatars.mjs && node tools/rasterize.mjs"
+    "assets": "node tools/gen-avatars.mjs && node tools/rasterize.mjs",
+    "check:engine": "esbuild tools/check-engine.ts --bundle --platform=node --outfile=.tmp/check.cjs --log-level=warning && node .tmp/check.cjs"
   },
   "private": true,
   "dependencies": {
