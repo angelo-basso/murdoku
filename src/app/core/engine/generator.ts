@@ -194,7 +194,7 @@ function truthPool(kase: DeductionCase, place: Placement, rnd: () => number, peo
     for (const other of shuffle(rnd, rooms.filter((x) => x !== room)).slice(0, 2))
       clues.push({ t: 'notRoom', who: p.id, room: other, text: '' });
     if (seating.has(t)) clues.push({ t: 'furniture', who: p.id, ftype: t, color: t === 'lit' ? (col ?? undefined) : undefined, text: '' });
-    for (const [a, b] of shuffle(rnd, neighbors(kase, r, c))) {
+    for (const [a, b] of shuffle(rnd, neighbors(kase, r, c).filter(([a, b]) => kase.rooms[a][b] === room))) {
       const nt = fType(kase.furniture[a][b]);
       if (blockers.has(nt)) { clues.push({ t: 'nextToFurniture', who: p.id, ftype: nt, text: '' }); break; }
     }

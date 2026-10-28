@@ -40,13 +40,12 @@ export const MANOIR_6: DeductionCase = {
   clues: [
     { t: 'furniture', who: 'plaquiste', ftype: 'lit', color: 'bleu', text: "Hugo le Plaquiste dormait sur le lit au duvet bleu." },
     { t: 'room', who: 'victime', room: 'H', text: "Le corps de M. Hervé a été découvert dans la véranda." },
-    { t: 'furniture', who: 'peintre', ftype: 'canape', text: "Sofia la Peintre s'était assoupie sur un canapé." },
-    { t: 'room', who: 'peintre', room: 'E', text: "Sofia la Peintre n'a pas quitté le salon de la soirée." },
     { t: 'room', who: 'notaire', room: 'C', text: "Léa la Notaire travaillait dans le bureau." },
-    { t: 'nextToFurniture', who: 'libraire', ftype: 'plante', text: "Inès la Libraire s'était installée juste à côté d'une plante." },
     { t: 'room', who: 'libraire', room: 'D', text: "Inès la Libraire préparait un thé à la cuisine." },
-    { t: 'sameRoom', a: 'jardinier', b: 'victime', text: "Marco le Jardinier se trouvait dans la même pièce que la victime." },
-    { t: 'nextToFurniture', who: 'jardinier', ftype: 'coiffeuse', text: "Marco le Jardinier était assis à côté d'une coiffeuse." },
+    { t: 'nextToFurniture', who: 'libraire', ftype: 'table', text: "Inès la Libraire s'était installée juste à côté d'une table." },
+    { t: 'furniture', who: 'peintre', ftype: 'canape', text: "Sofia la Peintre s'était assoupie sur un canapé." },
+    { t: 'furniture', who: 'jardinier', ftype: 'canape', text: "Marco le Jardinier s'était affalé sur un canapé." },
+    { t: 'colLeft', a: 'peintre', b: 'jardinier', text: "Sofia la Peintre se trouvait dans une colonne à gauche de Marco le Jardinier." },
   ],
 };
 

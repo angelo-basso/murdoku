@@ -99,31 +99,30 @@ export class DeductionGameService {
     this.selectedSig.update((cur) => (cur === id ? null : id));
   }
 
-  /** Clic sur une case : rature (mode notes), pose la personne sélectionnée, ou retire l'occupant. */
+  /**
+   * Clic sur une case : rature (mode notes) ; sinon
+   * - case occupée, rien de sélectionné (ou un personnage déjà posé) → on « ramasse » l'occupant ;
+   * - case occupée par le personnage sélectionné → il retourne dans la réserve ;
+   * - personnage sélectionné + case libre (ou occupée, depuis la réserve) → on le pose / déplace.
+   */
   tapCell(r: number, col: number): void {
     const c = this.caseSig();
     if (!c || this.pausedSig() || !this.occupiable(r, col)) return;
 
+    const sel = this.selectedSig();
     if (this.notesModeSig()) {
-      const sel = this.selectedSig();
       if (sel) this.toggleElim(sel, r, col);
       return;
     }
 
     const occupant = this.occupantAt(r, col);
-    const sel = this.selectedSig();
-
-    if (sel) {
-      const place = { ...this.placeSig() };
-      if (occupant && occupant !== sel) place[occupant] = null; // libère la case
-      place[sel] = [r, col];
-      this.placeSig.set(place);
-      this.selectedSig.set(null);
-    } else if (occupant) {
-      const place = { ...this.placeSig() };
-      place[occupant] = null;
-      this.placeSig.set(place);
+    if (occupant) {
+      if (sel === occupant) { this.removePerson(occupant); this.selectedSig.set(null); }
+      else if (!sel || this.isPlaced(sel)) this.selectedSig.set(occupant);
+      else this.placePerson(sel, r, col);
+      return;
     }
+    if (sel) this.placePerson(sel, r, col);
   }
 
   /** Place explicitement une personne sur une case (glisser-déposer). */

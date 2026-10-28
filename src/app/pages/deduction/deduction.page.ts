@@ -91,7 +91,10 @@ const TINT: Record<string, string> = {
         </div>
 
         <!-- Aide contextuelle -->
-        <p class="status" [class.warn]="statusWarn()" aria-live="polite">{{ status() }}</p>
+        <p class="status" [class.warn]="statusWarn()" aria-live="polite">
+          {{ status() }}
+          @if (selectedPlaced()) { <button type="button" class="unplace" (click)="onUnplace()">↩ Retirer</button> }
+        </p>
 
         <!-- Personnes -->
         <div class="tray" [style.--n]="trayCols()">
@@ -242,6 +245,8 @@ const TINT: Record<string, string> = {
     .status { max-width: 420px; margin: 0 auto 10px; min-height: 18px; text-align: center;
       font-size: 13px; color: #cfc7e6; }
     .status.warn { color: #ff8a9a; }
+    .unplace { margin-left: 6px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--gold);
+      background: #d4af3722; color: var(--gold); font-weight: 700; font-size: .8rem; cursor: pointer; }
 
     .tray { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 5px;
       max-width: 420px; margin: 0 auto 12px; }
@@ -433,6 +438,7 @@ export class DeductionPage implements OnInit, OnDestroy {
       const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null;
       const cell = el?.closest('.cell') as HTMLElement | null;
       if (cell?.dataset['r'] != null) this.game.placePerson(id, +cell.dataset['r']!, +cell.dataset['c']!);
+      else if (!el?.closest('.board')) this.game.removePerson(id); // lâché hors du plateau → retour à la réserve
     }
     // sinon : simple tap, géré par (click)
   }
@@ -648,8 +654,10 @@ export class DeductionPage implements OnInit, OnDestroy {
     }
     if (this.game.conflicts().size) return 'Deux personnes partagent une ligne ou une colonne.';
     if (this.badClues()) return `${this.badClues()} indice${this.badClues() > 1 ? 's' : ''} non respecté${this.badClues() > 1 ? 's' : ''} (en rouge).`;
+    if (sel && this.game.isPlaced(sel)) return `${name} : touche une autre case pour le déplacer.`;
     if (sel) return `${name} : touche une case dorée, ou fais glisser le portrait.`;
     if (this.placedCount() === c.people.length) return 'Tout le monde est placé… vérifie les indices.';
+    if (this.placedCount()) return 'Choisis un personnage, puis une case. Touche un portrait posé pour le déplacer.';
     return 'Choisis un personnage, puis une case.';
   });
   readonly statusWarn = computed(() => !this.game.notesMode() && (this.game.conflicts().size > 0 || this.badClues() > 0));
@@ -662,6 +670,14 @@ export class DeductionPage implements OnInit, OnDestroy {
 
   onCell(r: number, col: number): void { this.game.tapCell(r, col); }
   onPerson(id: string): void { this.game.selectPerson(id); }
+  readonly selectedPlaced = computed(() => {
+    const sel = this.game.selected();
+    return !!sel && !this.game.notesMode() && !!this.game.placement()[sel];
+  });
+  onUnplace(): void {
+    const sel = this.game.selected();
+    if (sel) { this.game.removePerson(sel); this.game.selectPerson(sel); }
+  }
   onHint(): void { this.game.hint(); }
   toggleStrike(i: number): void {
     const s = new Set(this.struck());

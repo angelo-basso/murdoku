@@ -14,8 +14,9 @@ export function neighbors(c: DeductionCase, r: number, col: number): [number, nu
     .filter(([a, b]) => a >= 0 && a < c.n && b >= 0 && b < c.n);
 }
 
+/** « À côté de » : voisin orthogonal dans la même pièce (un indice ne traverse pas les murs). */
 export function nextToFurniture(c: DeductionCase, r: number, col: number, ftype: string, color?: string): boolean {
-  return neighbors(c, r, col).some(([a, b]) =>
+  return neighbors(c, r, col).some(([a, b]) => c.rooms[a][b] === c.rooms[r][col] &&
     fType(c.furniture[a][b]) === ftype && (!color || fColor(c.furniture[a][b]) === color));
 }
 
