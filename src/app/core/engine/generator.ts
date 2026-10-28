@@ -1,5 +1,5 @@
 import { Clue, DeductionCase, Difficulty, Person, Placement } from '../models/deduction.models';
-import { FURN_LABEL, NEXT_LABEL, THEMES } from '../data/deduction-themes';
+import { BLOCKING, FURNITURE, RoomDef, THEMES } from '../data/deduction-themes';
 import { candidates, clueHolds, culprit, fColor, fType, neighbors, occupiable, solve } from './solver';
 
 export interface DifficultyDef {
@@ -50,7 +50,7 @@ const rngOf = (seed: string) => mulberry32(xmur3(seed)());
 const pick = <T>(rnd: () => number, a: T[]): T => a[Math.floor(rnd() * a.length)];
 function shuffle<T>(rnd: () => number, a: T[]): T[] { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; }
 
-const RELATIONAL_ORDER = ['sameRoom', 'notSameRoom', 'colLeft', 'rowAbove', 'notRoom', 'nextToFurniture', 'furniture', 'room'];
+const RELATIONAL_ORDER = ['colLeft', 'rowAbove', 'notRoom', 'nextToFurniture', 'furniture', 'room'];
 const rank = (c: Clue) => RELATIONAL_ORDER.indexOf(c.t);
 
 export function generate(o: GenOptions): DeductionCase | null {
@@ -59,30 +59,29 @@ export function generate(o: GenOptions): DeductionCase | null {
   if (!theme || !def) return null;
   const size = o.size ?? def.size;
   if (!theme.layouts[size] || theme.people.length < size) return null;
-  const seating = new Set(theme.seatingPool.map(fType).filter((t) => t !== 'vide'));
-  const blockers = new Set(theme.blockerPool.map(fType));
 
   for (let salt = 0; salt < 60; salt++) {
     const rnd = rngOf(`${o.seed}|${salt}`);
     const layout = pick(rnd, theme.layouts[size]);
     const rooms = layout.map((row) => row.split(''));
     const roomIds = [...new Set(layout.join(''))];
-    const names = shuffle(rnd, theme.roomNamePool);
+    if (roomIds.length > theme.rooms.length) return null;
+    const defs = shuffle(rnd, theme.rooms);
+    const roomDef: Record<string, RoomDef> = {};
     const roomNames: Record<string, string> = {};
     const tints: Record<string, string> = {};
-    roomIds.forEach((id, i) => { roomNames[id] = names[i % names.length]; tints[id] = theme.tintPalette[i % theme.tintPalette.length]; });
-    const pool = [...theme.seatingPool, ...theme.blockerPool];
-    const furniture = Array.from({ length: size }, () => Array.from({ length: size }, () => pick(rnd, pool)));
+    roomIds.forEach((id, i) => { roomDef[id] = defs[i]; roomNames[id] = defs[i].name; tints[id] = theme.tintPalette[i % theme.tintPalette.length]; });
+    const furniture = furnish(rnd, rooms, roomDef);
     const people: Person[] = theme.people.slice(0, size).map((p) => ({ ...p }));
-    const kase: DeductionCase = { id: '', title: '', n: size, intro: '', rooms, roomNames, furniture, blocking: theme.blocking, people, clues: [], tints };
+    const kase: DeductionCase = { id: '', title: '', n: size, intro: '', rooms, roomNames, furniture, blocking: BLOCKING, people, clues: [], tints };
 
     const sol = findSolution(kase, rnd, people);
     if (!sol) continue;
     const victimId = people.find((p) => p.victim)!.id;
 
     // Indices vrais, en excluant ceux qui livrent directement le coupable.
-    let truePool = truthPool(kase, sol.place, rnd, people, seating, blockers)
-      .filter((c) => !givesAway(c, victimId, sol.killer, sol.vroom));
+    let truePool = truthPool(kase, sol.place, rnd, people)
+      .filter((c) => !givesAway(c, victimId, sol.killer, sol.vroom, kase));
     truePool = shuffle(rnd, truePool);
     if (def.relationalFirst) truePool.sort((a, b) => rank(a) - rank(b));
 
@@ -122,19 +121,25 @@ export function generate(o: GenOptions): DeductionCase | null {
     kase.id = shareCode({ themeId: o.themeId, size, difficulty: o.difficulty, seed: o.seed });
     kase.share = kase.id;
     kase.title = `${theme.name} · ${def.label}`;
-    kase.intro = `Placez chaque personne selon les indices ; le coupable finit seul avec la victime.`;
+    kase.intro = `Placez chaque personne selon les indices ; une seule personne par pièce, sauf le meurtrier, seul avec sa victime.`;
     return kase;
   }
   return null;
 }
 
 /** Indices interdits : ils désigneraient le coupable sans déduction. */
-function givesAway(c: Clue, victimId: string, killerId: string, vroom: string): boolean {
+function givesAway(c: Clue, victimId: string, killerId: string, vroom: string, kase: DeductionCase): boolean {
   if ((c.t === 'sameRoom' || c.t === 'notSameRoom') && (c.a === victimId || c.b === victimId)) return true;
   if (c.t === 'room' && c.room === vroom) return true;           // « X était dans la pièce du crime »
   if (c.t === 'notRoom' && c.room === vroom) return true;        // élimination directe des suspects
   if (c.t === 'room' && c.who === victimId) return true;         // déjà donné par l'indice d'ouverture
   if (c.who === killerId && c.t === 'room') return true;
+  // Un indice individuel dont toutes les cases possibles sont dans la pièce du crime
+  // revient à dire « X était avec la victime » (ex. le seul fourneau est dans la cuisine du crime).
+  if (c.who && c.who !== victimId && c.t !== 'room' && c.t !== 'notRoom') {
+    const cells = candidates({ ...kase, clues: [c] }, c.who);
+    if (cells.length && cells.every(([r, col]) => kase.rooms[r][col] === vroom)) return true;
+  }
   return false;
 }
 
@@ -168,14 +173,15 @@ function findSolution(kase: DeductionCase, rnd: () => number, people: Person[]):
     const killer = suspects[0];
     const rest = suspects.slice(1);
     const place: Placement = { [victimId]: vc, [killer]: kc };
-    const usedR = new Set([vc[0], kc[0]]), usedC = new Set([vc[1], kc[1]]);
+    const usedR = new Set([vc[0], kc[0]]), usedC = new Set([vc[1], kc[1]]), usedRooms = new Set([vroom]);
     const assign = (i: number): boolean => {
       if (i === rest.length) return true;
       for (const [r, c] of outside) {
-        if (usedR.has(r) || usedC.has(c)) continue;
-        place[rest[i]] = [r, c]; usedR.add(r); usedC.add(c);
+        const room = kase.rooms[r][c];
+        if (usedR.has(r) || usedC.has(c) || usedRooms.has(room)) continue;
+        place[rest[i]] = [r, c]; usedR.add(r); usedC.add(c); usedRooms.add(room);
         if (assign(i + 1)) return true;
-        usedR.delete(r); usedC.delete(c); delete place[rest[i]];
+        usedR.delete(r); usedC.delete(c); usedRooms.delete(room); delete place[rest[i]];
       }
       return false;
     };
@@ -184,27 +190,46 @@ function findSolution(kase: DeductionCase, rnd: () => number, people: Person[]):
   return null;
 }
 
-function truthPool(kase: DeductionCase, place: Placement, rnd: () => number, people: Person[], seating: Set<string>, blockers: Set<string>): Clue[] {
+/**
+ * Meuble chaque pièce avec son propre mobilier (pas de lit dans la cuisine) :
+ * ~40 % d'assises, ~40 % d'objets bloquants, le reste en sol nu ; au moins une assise par pièce.
+ */
+function furnish(rnd: () => number, rooms: string[][], roomDef: Record<string, RoomDef>): string[][] {
+  const n = rooms.length;
+  const furniture = rooms.map((row) => row.map((id) => {
+    const d = roomDef[id], x = rnd();
+    return x < 0.4 ? pick(rnd, d.seats) : x < 0.8 ? pick(rnd, d.objects) : 'vide';
+  }));
+  for (const id of Object.keys(roomDef)) {
+    const cells: [number, number][] = [];
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (rooms[r][c] === id) cells.push([r, c]);
+    if (!cells.some(([r, c]) => !FURNITURE[furniture[r][c]]?.block)) {
+      const [r, c] = pick(rnd, cells);
+      furniture[r][c] = pick(rnd, roomDef[id].seats);
+    }
+  }
+  return furniture;
+}
+
+function truthPool(kase: DeductionCase, place: Placement, rnd: () => number, people: Person[]): Clue[] {
   const clues: Clue[] = [];
   const rooms = Object.keys(kase.roomNames);
   for (const p of people) {
     const [r, c] = place[p.id]!;
     const room = kase.rooms[r][c], code = kase.furniture[r][c], t = fType(code), col = fColor(code);
+    const isSeat = code !== 'vide' && !!FURNITURE[code] && !FURNITURE[code].block;
     clues.push({ t: 'room', who: p.id, room, text: '' });
     for (const other of shuffle(rnd, rooms.filter((x) => x !== room)).slice(0, 2))
       clues.push({ t: 'notRoom', who: p.id, room: other, text: '' });
-    if (seating.has(t)) clues.push({ t: 'furniture', who: p.id, ftype: t, color: t === 'lit' ? (col ?? undefined) : undefined, text: '' });
+    if (isSeat) clues.push({ t: 'furniture', who: p.id, ftype: t, color: col ?? undefined, text: '' });
     for (const [a, b] of shuffle(rnd, neighbors(kase, r, c).filter(([a, b]) => kase.rooms[a][b] === room))) {
       const nt = fType(kase.furniture[a][b]);
-      if (blockers.has(nt)) { clues.push({ t: 'nextToFurniture', who: p.id, ftype: nt, text: '' }); break; }
+      if (FURNITURE[nt]?.block) { clues.push({ t: 'nextToFurniture', who: p.id, ftype: nt, text: '' }); break; }
     }
   }
   const ids = people.map((p) => p.id);
   for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
     const a = ids[i], b = ids[j], pa = place[a]!, pb = place[b]!;
-    const same = kase.rooms[pa[0]][pa[1]] === kase.rooms[pb[0]][pb[1]];
-    if (same) clues.push({ t: 'sameRoom', a, b, text: '' });
-    else if (rnd() < 0.5) clues.push({ t: 'notSameRoom', a, b, text: '' });
     if (rnd() < 0.5) clues.push(pa[1] < pb[1] ? { t: 'colLeft', a, b, text: '' } : { t: 'colLeft', a: b, b: a, text: '' });
     if (rnd() < 0.35) clues.push(pa[0] < pb[0] ? { t: 'rowAbove', a, b, text: '' } : { t: 'rowAbove', a: b, b: a, text: '' });
   }
@@ -217,8 +242,8 @@ function clueText(kase: DeductionCase, clue: Clue): string {
   switch (clue.t) {
     case 'room': return `${nm(clue.who!)} se trouvait dans « ${rn(clue.room!)} ».`;
     case 'notRoom': return `${nm(clue.who!)} n'était pas dans « ${rn(clue.room!)} ».`;
-    case 'furniture': return `${nm(clue.who!)} se tenait sur ${clue.color ? 'le lit au duvet ' + clue.color : FURN_LABEL[clue.ftype!]}.`;
-    case 'nextToFurniture': return `${nm(clue.who!)} était juste à côté ${NEXT_LABEL[clue.ftype!]}.`;
+    case 'furniture': return `${nm(clue.who!)} se trouvait ${FURNITURE[clue.ftype! + (clue.color ? ':' + clue.color : '')].on}.`;
+    case 'nextToFurniture': return `${nm(clue.who!)} était juste à côté ${FURNITURE[clue.ftype!].next}.`;
     case 'sameRoom': return `${nm(clue.a!)} et ${nm(clue.b!)} étaient dans la même pièce.`;
     case 'notSameRoom': return `${nm(clue.a!)} et ${nm(clue.b!)} n'étaient pas dans la même pièce.`;
     case 'colLeft': return `${nm(clue.a!)} se trouvait dans une colonne à gauche de ${nm(clue.b!)}.`;

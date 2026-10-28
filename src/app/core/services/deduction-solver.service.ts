@@ -16,5 +16,6 @@ export class DeductionSolverService {
   solve(c: DeductionCase): { solutions: Placement[] } { return { solutions: E.solve(c, 2) }; }
   solution(c: DeductionCase): Placement | null { const s = E.solve(c, 2); return s.length === 1 ? s[0] : null; }
   allCluesSatisfied(c: DeductionCase, place: Placement): boolean { return E.allCluesSatisfied(c, place); }
+  roomViolations(c: DeductionCase, place: Placement): Set<string> { return E.roomViolations(c, place); }
   culprit(c: DeductionCase, place: Placement): string | null { return E.culprit(c, place); }
 }

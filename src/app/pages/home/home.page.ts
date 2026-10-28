@@ -81,10 +81,10 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
       <section class="card rules">
         <h2>Comment jouer</h2>
         <ol>
-          <li><span class="n">1</span><p>Une seule personne par <b>ligne</b> et par <b>colonne</b>.</p></li>
+          <li><span class="n">1</span><p>Une seule personne par <b>ligne</b>, par <b>colonne</b> et par <b>pièce</b>.</p></li>
           <li><span class="n">2</span><p>On se place sur un siège, un lit ou le sol — jamais sur un meuble <b>hachuré</b>.</p></li>
           <li><span class="n">3</span><p>Tous les <b>indices</b> doivent être respectés.</p></li>
-          <li><span class="n">4</span><p>Le <b>coupable</b> est celui qui se retrouve seul avec la victime dans sa pièce.</p></li>
+          <li><span class="n">4</span><p>Seule exception : le <b>coupable</b>, l'unique personne qui partage la pièce de la victime.</p></li>
         </ol>
         <button type="button" class="secondary" (click)="router.navigate(['/deduction', 'manoir-6'])">Faire l'affaire d'initiation</button>
       </section>

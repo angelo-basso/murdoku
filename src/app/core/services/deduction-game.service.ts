@@ -157,10 +157,11 @@ export class DeductionGameService {
 
   isPlaced = (id: string): boolean => !!this.placeSig()[id];
 
-  /** Personnes en conflit (même ligne ou même colonne qu'une autre). */
+  /** Personnes en conflit : même ligne, même colonne, ou pièce partagée hors victime + meurtrier. */
   readonly conflicts = computed<Set<string>>(() => {
     const place = this.placeSig();
-    const bad = new Set<string>();
+    const c = this.caseSig();
+    const bad = c ? this.solver.roomViolations(c, place) : new Set<string>();
     const entries = Object.entries(place).filter(([, p]) => p) as [string, [number, number]][];
     for (let i = 0; i < entries.length; i++)
       for (let j = i + 1; j < entries.length; j++) {

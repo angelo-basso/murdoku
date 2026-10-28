@@ -1,4 +1,5 @@
 import { DeductionCase } from '../models/deduction.models';
+import { BLOCKING } from './deduction-themes';
 
 /** Affaire 6×6 « Le manoir » (identique au prototype prouvé unique). */
 export const MANOIR_6: DeductionCase = {
@@ -6,7 +7,7 @@ export const MANOIR_6: DeductionCase = {
   title: 'Le manoir de la colline',
   n: 6,
   intro:
-    "M. Hervé a été retrouvé sans vie dans le manoir. Six personnes y passaient la soirée. Placez chacune d'elles (une par ligne et par colonne) grâce aux indices : le coupable est celui qui s'est retrouvé seul avec la victime.",
+    "M. Hervé a été retrouvé sans vie dans le manoir. Six personnes y passaient la soirée. Placez chacune d'elles (une par ligne, par colonne et par pièce) grâce aux indices. Seul le coupable partageait la pièce de la victime.",
   rooms: [
     ['A', 'A', 'B', 'B', 'C', 'C'],
     ['A', 'A', 'B', 'B', 'C', 'C'],
@@ -16,19 +17,19 @@ export const MANOIR_6: DeductionCase = {
     ['G', 'G', 'G', 'H', 'H', 'H'],
   ],
   roomNames: {
-    A: 'Chambre bleue', B: 'Chambre rouge', C: 'Bureau',
+    A: 'Chambre bleue', B: 'Chambre rouge', C: 'Cabinet de travail',
     D: 'Cuisine', E: 'Salon', F: 'Bibliothèque',
     G: 'Atelier', H: 'Véranda',
   },
   furniture: [
     ['lit:bleu', 'coiffeuse', 'lit:rouge', 'coiffeuse', 'chaise', 'biblio'],
-    ['chaise', 'plante', 'chaise', 'vide', 'table', 'chaise'],
-    ['table', 'chaise', 'canape', 'vide', 'biblio', 'chaise'],
-    ['chaise', 'chaise', 'canape', 'table', 'chaise', 'biblio'],
-    ['plante', 'chaise', 'vide', 'chaise', 'vide', 'chaise'],
-    ['biblio', 'chaise', 'vide', 'vide', 'canape', 'coiffeuse'],
+    ['tapis', 'armoire', 'fauteuil', 'vide', 'globe', 'fauteuil'],
+    ['table', 'chaise', 'canape', 'tapis', 'biblio', 'chaise'],
+    ['tabouret', 'evier', 'canape', 'cheminee', 'fauteuil', 'biblio'],
+    ['chevalet', 'tabouret', 'vide', 'transat', 'plante', 'banc'],
+    ['etabli', 'tabouret', 'vide', 'vide', 'banc', 'plante'],
   ],
-  blocking: ['table', 'plante', 'biblio', 'coiffeuse'],
+  blocking: BLOCKING,
   people: [
     { id: 'victime', name: 'M. Hervé', role: 'la victime', victim: true },
     { id: 'plaquiste', name: 'Hugo le Plaquiste', role: 'plaquiste' },
@@ -38,13 +39,13 @@ export const MANOIR_6: DeductionCase = {
     { id: 'libraire', name: 'Inès la Libraire', role: 'libraire' },
   ],
   clues: [
-    { t: 'furniture', who: 'plaquiste', ftype: 'lit', color: 'bleu', text: "Hugo le Plaquiste dormait sur le lit au duvet bleu." },
     { t: 'room', who: 'victime', room: 'H', text: "Le corps de M. Hervé a été découvert dans la véranda." },
-    { t: 'room', who: 'notaire', room: 'C', text: "Léa la Notaire travaillait dans le bureau." },
+    { t: 'furniture', who: 'victime', ftype: 'transat', text: "M. Hervé gisait dans un transat." },
+    { t: 'furniture', who: 'plaquiste', ftype: 'lit', color: 'bleu', text: "Hugo le Plaquiste dormait sur le lit au duvet bleu." },
+    { t: 'room', who: 'notaire', room: 'C', text: "Léa la Notaire travaillait dans le cabinet de travail." },
     { t: 'room', who: 'libraire', room: 'D', text: "Inès la Libraire préparait un thé à la cuisine." },
     { t: 'nextToFurniture', who: 'libraire', ftype: 'table', text: "Inès la Libraire s'était installée juste à côté d'une table." },
-    { t: 'furniture', who: 'peintre', ftype: 'canape', text: "Sofia la Peintre s'était assoupie sur un canapé." },
-    { t: 'furniture', who: 'jardinier', ftype: 'canape', text: "Marco le Jardinier s'était affalé sur un canapé." },
+    { t: 'rowAbove', a: 'peintre', b: 'jardinier', text: "Sofia la Peintre se trouvait dans une rangée au-dessus de Marco le Jardinier." },
     { t: 'colLeft', a: 'peintre', b: 'jardinier', text: "Sofia la Peintre se trouvait dans une colonne à gauche de Marco le Jardinier." },
   ],
 };

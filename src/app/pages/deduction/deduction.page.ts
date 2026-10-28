@@ -12,7 +12,7 @@ import { Clue, DeductionCase, LevelDef } from '../../core/models/deduction.model
 import { DeductionGameService } from '../../core/services/deduction-game.service';
 import { DeductionGeneratorService } from '../../core/services/deduction-generator.service';
 import { DeductionSolverService } from '../../core/services/deduction-solver.service';
-import { ProgressService, formatTime } from '../../core/services/progress.service';
+import { ProgressService, caseFingerprint, formatTime } from '../../core/services/progress.service';
 
 interface CellVm {
   r: number; col: number;
@@ -468,7 +468,8 @@ export class DeductionPage implements OnInit, OnDestroy {
     }
 
     if (!c) { this.loading.set(false); this.error.set('Affaire introuvable.'); return; }
-    const saved = this.progress.getSave(c.id);
+    let saved = this.progress.getSave(c.id);
+    if (saved && saved.fp !== caseFingerprint(c)) { this.progress.clearSave(c.id); saved = null; } // niveau modifié depuis
     this.game.start(c, saved ?? undefined);
     if (saved) this.struck.set(new Set(saved.struck));
     this.loading.set(false);
@@ -490,7 +491,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     if (!c || this.loading() || this.game.culprit() || !this.saveRoute.length) return;
     if (!this.placedCount() && this.game.elapsed() < 5000) return; // rien d'intéressant à reprendre
     const snap = this.game.snapshot();
-    this.progress.save(c.id, { ...snap, struck: [...this.struck()], savedAt: Date.now(), title: this.titleLong(), route: this.saveRoute });
+    this.progress.save(c.id, { ...snap, struck: [...this.struck()], savedAt: Date.now(), title: this.titleLong(), route: this.saveRoute, fp: caseFingerprint(c) });
   }
 
   pause(): void { this.game.pause(); this.saveNow(); }
@@ -557,6 +558,29 @@ export class DeductionPage implements OnInit, OnDestroy {
     return { rows, cols };
   });
 
+  /**
+   * Pièces déjà « pleines » pour la personne sélectionnée (ou pour tous si aucune) :
+   * une personne par pièce, la victime pouvant seule partager la sienne avec un suspect.
+   */
+  readonly closedRooms = computed(() => {
+    const c = this.game.currentCase();
+    const closed = new Set<string>();
+    if (!c) return closed;
+    const sel = this.game.selected();
+    const place = this.game.placement();
+    const selIsVictim = !!sel && !!c.people.find((p) => p.id === sel)?.victim;
+    const byRoom: Record<string, string[]> = {};
+    for (const p of c.people) {
+      const pp = place[p.id];
+      if (pp && p.id !== sel) (byRoom[c.rooms[pp[0]][pp[1]]] ??= []).push(p.id);
+    }
+    for (const [room, ids] of Object.entries(byRoom)) {
+      const hasVictim = ids.some((id) => c.people.find((p) => p.id === id)?.victim);
+      if (ids.length >= 2 || (sel && !selIsVictim && !hasVictim)) closed.add(room);
+    }
+    return closed;
+  });
+
   readonly cells = computed<CellVm[]>(() => {
     const c = this.game.currentCase();
     if (!c) return [];
@@ -566,6 +590,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     const elimSet = this.game.eliminatedForSelected();
     const { rows, cols } = this.takenLines();
     const guiding = !!sel && !notes;
+    const closed = this.closedRooms();
     const out: CellVm[] = [];
     for (let r = 0; r < c.n; r++) {
       for (let col = 0; col < c.n; col++) {
@@ -573,7 +598,7 @@ export class DeductionPage implements OnInit, OnDestroy {
         const occ = this.game.occupantAt(r, col);
         const occPerson = occ ? c.people.find((p) => p.id === occ)! : null;
         const blocked = !this.solver.occupiable(c, r, col);
-        const lineTaken = rows.has(r) || cols.has(col);
+        const lineTaken = rows.has(r) || cols.has(col) || closed.has(room);
         const elim = !!sel && !occ && elimSet.has(`${r},${col}`);
         out.push({
           r, col,
@@ -652,7 +677,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     if (this.game.notesMode()) {
       return sel ? `Rature : touche les cases où ${name} ne peut pas être.` : 'Rature : choisis d\'abord un personnage.';
     }
-    if (this.game.conflicts().size) return 'Deux personnes partagent une ligne ou une colonne.';
+    if (this.game.conflicts().size) return 'Deux personnes partagent une ligne, une colonne ou une pièce (seul le meurtrier rejoint la victime).';
     if (this.badClues()) return `${this.badClues()} indice${this.badClues() > 1 ? 's' : ''} non respecté${this.badClues() > 1 ? 's' : ''} (en rouge).`;
     if (sel && this.game.isPlaced(sel)) return `${name} : touche une autre case pour le déplacer.`;
     if (sel) return `${name} : touche une case dorée, ou fais glisser le portrait.`;

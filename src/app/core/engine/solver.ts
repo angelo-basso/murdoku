@@ -78,9 +78,18 @@ export function solve(c: DeductionCase, limit = 2): Placement[] {
   const place: Placement = {};
   const usedR = new Array<boolean>(c.n).fill(false), usedC = new Array<boolean>(c.n).fill(false);
   const free = new Set(ids);
+  // Règle des pièces : une personne par pièce, sauf la victime et son meurtrier (exactement deux).
+  const victimId = c.people.find((p) => p.victim)?.id;
+  const roomCount: Record<string, number> = {};
+  let victimRoom: string | null = null;
+  const roomOk = (id: string, room: string): boolean => {
+    const n = roomCount[room] ?? 0;
+    if (n === 0) return true;
+    return n === 1 && (id === victimId || room === victimRoom);
+  };
 
   const fits = (id: string, r: number, col: number): boolean => {
-    if (usedR[r] || usedC[col]) return false;
+    if (usedR[r] || usedC[col] || !roomOk(id, c.rooms[r][col])) return false;
     place[id] = [r, col];
     const ok = binOf[id].every((cl) => binaryOk(c, cl, place));
     delete place[id];
@@ -89,20 +98,37 @@ export function solve(c: DeductionCase, limit = 2): Placement[] {
 
   const rec = (): void => {
     if (solutions.length >= limit) return;
-    if (!free.size) { solutions.push({ ...place }); return; }
+    if (!free.size) {
+      if (!victimRoom || roomCount[victimRoom] === 2) solutions.push({ ...place });
+      return;
+    }
     // Personne la plus contrainte d'abord (MRV) ; abandon dès qu'une n'a plus de case.
     let best: string | null = null;
     let bestOpts: [number, number][] = [];
+    const rowSeen = new Array<boolean>(c.n).fill(false), colSeen = new Array<boolean>(c.n).fill(false);
+    let killerPossible = !victimRoom || roomCount[victimRoom] === 2;
     for (const id of free) {
       const opts = cand[id].filter(([r, col]) => fits(id, r, col));
       if (!opts.length) return;
-      if (!best || opts.length < bestOpts.length) { best = id; bestOpts = opts; if (opts.length === 1) break; }
+      for (const [r, col] of opts) {
+        rowSeen[r] = colSeen[col] = true;
+        if (!killerPossible && c.rooms[r][col] === victimRoom) killerPossible = true;
+      }
+      if (!best || opts.length < bestOpts.length) { best = id; bestOpts = opts; }
     }
+    // Chaque ligne/colonne libre doit rester atteignable, et quelqu'un doit pouvoir rejoindre la victime.
+    if (!killerPossible) return;
+    for (let i = 0; i < c.n; i++) if ((!usedR[i] && !rowSeen[i]) || (!usedC[i] && !colSeen[i])) return;
     const id = best!;
     free.delete(id);
     for (const [r, col] of bestOpts) {
+      const room = c.rooms[r][col];
       place[id] = [r, col]; usedR[r] = true; usedC[col] = true;
+      roomCount[room] = (roomCount[room] ?? 0) + 1;
+      if (id === victimId) victimRoom = room;
       rec();
+      roomCount[room]--;
+      if (id === victimId) victimRoom = null;
       usedR[r] = false; usedC[col] = false; delete place[id];
       if (solutions.length >= limit) break;
     }
@@ -110,6 +136,20 @@ export function solve(c: DeductionCase, limit = 2): Placement[] {
   };
   rec();
   return solutions;
+}
+
+/** Personnes qui enfreignent la règle des pièces (plus d'une personne, hors victime + meurtrier). */
+export function roomViolations(c: DeductionCase, place: Placement): Set<string> {
+  const byRoom: Record<string, string[]> = {};
+  for (const p of c.people) {
+    const pp = place[p.id];
+    if (pp) (byRoom[c.rooms[pp[0]][pp[1]]] ??= []).push(p.id);
+  }
+  const bad = new Set<string>();
+  const victimId = c.people.find((p) => p.victim)?.id;
+  for (const ids of Object.values(byRoom))
+    if (ids.length > 2 || (ids.length === 2 && !ids.includes(victimId!))) ids.forEach((id) => bad.add(id));
+  return bad;
 }
 
 export function allCluesSatisfied(c: DeductionCase, place: Placement): boolean {

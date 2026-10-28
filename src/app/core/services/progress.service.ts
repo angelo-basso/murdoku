@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
-import { Difficulty, Placement } from '../models/deduction.models';
+import { DeductionCase, Difficulty, Placement } from '../models/deduction.models';
 
 /** Partie en cours, sauvegardée pour être reprise plus tard. */
 export interface SavedGame {
@@ -12,6 +12,8 @@ export interface SavedGame {
   title: string;
   /** Route à rouvrir : ['/niveau', id] ou ['/deduction/gen', code]. */
   route: string[];
+  /** Empreinte de la grille : une sauvegarde d'une ancienne version du niveau est ignorée. */
+  fp?: string;
 }
 
 interface ProgressState {
@@ -95,4 +97,12 @@ export function formatTime(ms: number): string {
   const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
   const mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
   return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+/** Empreinte courte d'une affaire (plan, mobilier, indices). */
+export function caseFingerprint(c: DeductionCase): string {
+  const src = JSON.stringify([c.rooms, c.furniture, c.clues.map((x) => x.text)]);
+  let h = 2166136261;
+  for (let i = 0; i < src.length; i++) h = Math.imul(h ^ src.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(36);
 }
