@@ -36,162 +36,92 @@ import { StorageService } from '../../core/services/storage.service';
     IonNote,
   ],
   template: `
-    <ion-header [translucent]="true">
-      <ion-toolbar>
-        <ion-title>Les affaires</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content [fullscreen]="true" class="ion-padding">
+    <ion-content [fullscreen]="true" class="ion-padding home">
       <img class="logo" src="assets/brand/logo.svg" alt="Murdoku — Sudoku d'enquête" />
-      <p class="tagline">
-        Menez l'enquête&nbsp;: placez les suspects d'après les indices et
-        démasquez le coupable&nbsp;🔍
-      </p>
+      <p class="tagline">Placez les suspects d'après les indices et démasquez le coupable.</p>
 
-      <!-- Nouvelle enquête (déduction, vraies règles) -->
+      <!-- Nouvelle enquête -->
       <section class="newgame">
-        <h2 class="section">🕵️ Nouvelle enquête</h2>
+        <h2 class="section">Nouvelle enquête</h2>
+        <p class="label">Décor</p>
         <div class="chips">
           @for (t of themeList; track t.id) {
-            <button type="button" class="chip" [class.on]="theme() === t.id" (click)="theme.set(t.id)">{{ t.label }}</button>
+            <button type="button" class="chip" [class.on]="theme() === t.id" [attr.aria-pressed]="theme() === t.id" (click)="theme.set(t.id)">{{ t.label }}</button>
           }
         </div>
+        <p class="label">Difficulté</p>
         <div class="chips">
           @for (d of diffs; track d.id) {
-            <button type="button" class="chip" [class.on]="diff() === d.id" (click)="diff.set(d.id)">{{ d.label }}</button>
+            <button type="button" class="chip diff" [class.on]="diff() === d.id" [attr.aria-pressed]="diff() === d.id" (click)="diff.set(d.id)">
+              <b>{{ d.name }}</b><small>{{ d.size }}</small>
+            </button>
           }
         </div>
         <button type="button" class="generate" (click)="newGame()">Lancer l'enquête</button>
+      </section>
+
+      <!-- Règles -->
+      <section class="rules">
+        <h2 class="section">Comment jouer</h2>
+        <ol>
+          <li><span class="n">1</span><p>Une seule personne par <b>ligne</b> et par <b>colonne</b>.</p></li>
+          <li><span class="n">2</span><p>On se place sur un lit, une chaise, un canapé ou le sol — jamais sur un meuble <b>hachuré</b>.</p></li>
+          <li><span class="n">3</span><p>Tous les <b>indices</b> doivent être respectés.</p></li>
+          <li><span class="n">4</span><p>Le <b>coupable</b> est celui qui se retrouve seul avec la victime dans sa pièce.</p></li>
+        </ol>
+        <button type="button" class="tuto" (click)="openDeduction('manoir-6')">Faire l'affaire d'initiation</button>
+      </section>
+
+      <!-- Code partagé -->
+      <section class="shared">
+        <p class="label">Un ami vous a envoyé une affaire ?</p>
         <div class="codebox">
-          <input #code placeholder="coller un code d'affaire partagé…" />
+          <input #code placeholder="Coller le code (ex. hante.6.m.ab12cd)" autocapitalize="off" autocomplete="off" spellcheck="false"
+            (keyup.enter)="playCode(code.value)" />
           <button type="button" (click)="playCode(code.value)">Jouer</button>
         </div>
-        <button type="button" class="tuto" (click)="openDeduction('manoir-6')">Essayer le didacticiel →</button>
       </section>
     </ion-content>
   `,
   styles: [
     `
-      .logo {
-        display: block;
-        width: 100%;
-        max-width: 300px;
-        margin: 6px auto 2px;
-      }
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-family: var(--murdoku-font);
-        letter-spacing: 1px;
-      }
-      .tagline {
-        opacity: 0.85;
-        font-size: 0.95rem;
-        margin: 4px 0 18px;
-        text-align: center;
-      }
-      .cases {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-      }
-      .case-card {
-        text-align: left;
-        width: 100%;
-        background: var(--ion-card-background);
-        border: 1px solid rgba(212, 175, 55, 0.3);
-        border-radius: 14px;
-        padding: 14px;
-        color: var(--ion-text-color);
-        cursor: pointer;
-      }
-      .case-card:active {
-        transform: scale(0.99);
-      }
-      .head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-      .title {
-        font-family: var(--murdoku-font);
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: var(--ion-color-primary);
-      }
-      .solved {
-        color: var(--ion-color-success);
-        font-size: 1.3rem;
-      }
-      .meta {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 8px 0;
-        text-transform: capitalize;
-      }
-      .victim {
-        font-size: 0.9rem;
-        margin: 6px 0 10px;
-        opacity: 0.9;
-      }
-      .avatars {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-      }
-      .avatar {
-        width: 30px;
-        height: 30px;
-        object-fit: contain;
-      }
-      .avatar.pix {
-        width: 38px;
-        height: 42px;
-      }
-      .featured {
-        border-color: var(--ion-color-secondary);
-        background: linear-gradient(180deg, #2a2250 0%, var(--ion-card-background) 70%);
-      }
-      .section {
-        color: var(--ion-color-primary);
-        font-family: var(--murdoku-font);
-        font-size: 1rem;
-        margin: 20px 0 10px;
-        opacity: 0.9;
-      }
-      .newgame {
-        background: linear-gradient(180deg, #2a2250 0%, var(--ion-card-background) 80%);
-        border: 1px solid var(--ion-color-secondary);
-        border-radius: 14px;
-        padding: 14px;
-      }
-      .newgame .section { margin-top: 0; }
-      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-      .chip {
-        flex: 1; min-width: 90px; padding: 8px 6px; border-radius: 9px;
-        border: 1px solid rgba(212, 175, 55, 0.3); background: var(--murdoku-cell-given-bg);
-        color: var(--ion-text-color); font-size: 0.8rem;
-      }
+      .home { --pad-top: calc(env(safe-area-inset-top, 0px) + 12px); }
+      .home::part(scroll) { padding-top: var(--pad-top); }
+      .logo { display: block; width: 100%; max-width: 290px; margin: 8px auto 4px; }
+      .tagline { color: #c9c1e2; font-size: 0.95rem; line-height: 1.4; margin: 4px auto 20px; text-align: center; max-width: 320px; }
+      section { max-width: 460px; margin: 0 auto 16px; border-radius: 16px; padding: 16px; }
+      .section { color: var(--ion-color-primary); font-family: var(--murdoku-font); font-size: 1.1rem; margin: 0 0 10px; }
+      .label { margin: 10px 0 6px; font-size: 0.72rem; letter-spacing: .08em; text-transform: uppercase; color: #8f87ad; }
+      .newgame { background: linear-gradient(180deg, #2a2250 0%, var(--ion-card-background) 85%); border: 1px solid #6c5ce7aa; }
+      .chips { display: flex; gap: 8px; }
+      .chip { flex: 1; min-height: 46px; padding: 8px 6px; border-radius: 11px;
+        border: 1px solid rgba(212, 175, 55, 0.28); background: #ffffff08; color: var(--ion-text-color); font-size: 0.85rem;
+        transition: background .15s, transform .1s; }
+      .chip:active { transform: scale(.97); }
+      .chip.diff { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+      .chip.diff small { font-size: 0.7rem; opacity: .7; }
       .chip.on { border-color: var(--ion-color-primary); background: var(--ion-color-primary); color: var(--ion-color-primary-contrast); font-weight: 700; }
-      .generate {
-        width: 100%; margin: 6px 0; padding: 12px; border-radius: 10px; border: none;
+      .chip.on small { opacity: .85; }
+      .generate { width: 100%; margin: 16px 0 0; min-height: 52px; border-radius: 12px; border: none;
         background: var(--ion-color-primary); color: var(--ion-color-primary-contrast);
-        font-family: var(--murdoku-font); font-size: 1rem; font-weight: 700;
-      }
-      .codebox { display: flex; gap: 6px; margin-top: 6px; }
-      .codebox input {
-        flex: 1; background: #0003; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 8px;
-        color: var(--ion-text-color); padding: 8px; font-size: 0.8rem;
-      }
-      .codebox button {
-        border: 1px solid rgba(212, 175, 55, 0.4); background: transparent; color: var(--ion-color-primary);
-        border-radius: 8px; padding: 0 12px; font-size: 0.8rem;
-      }
-      .tuto { background: transparent; border: none; color: #9a8fc0; font-size: 0.8rem; margin-top: 8px; text-decoration: underline; }
+        font-family: var(--murdoku-font); font-size: 1.08rem; font-weight: 700; box-shadow: 0 6px 18px #d4af3733; }
+      .generate:active { transform: scale(.98); }
+      .rules { background: var(--ion-card-background); border: 1px solid #ffffff12; }
+      .rules ol { list-style: none; margin: 0; padding: 0; }
+      .rules li { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; font-size: 0.9rem; line-height: 1.4; color: #e3dcf5; }
+      .rules li p { margin: 0; }
+      .rules li .n { flex: 0 0 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+        background: #d4af3722; color: var(--ion-color-primary); font-size: 0.75rem; font-weight: 700; }
+      .rules b { color: #fff; }
+      .tuto { width: 100%; margin-top: 4px; min-height: 46px; border-radius: 12px; background: transparent;
+        border: 1px solid rgba(212, 175, 55, 0.45); color: var(--ion-color-primary); font-size: 0.92rem; font-weight: 600; }
+      .shared { padding-top: 4px; }
+      .codebox { display: flex; gap: 8px; }
+      .codebox input { flex: 1; min-width: 0; min-height: 46px; background: #0003; border: 1px solid #ffffff22;
+        border-radius: 11px; color: var(--ion-text-color); padding: 0 12px; font-size: 0.85rem; }
+      .codebox input:focus { outline: none; border-color: var(--ion-color-primary); }
+      .codebox button { min-height: 46px; border: 1px solid rgba(212, 175, 55, 0.45); background: transparent;
+        color: var(--ion-color-primary); border-radius: 11px; padding: 0 16px; font-size: 0.9rem; font-weight: 600; }
     `,
   ],
 })
@@ -210,10 +140,10 @@ export class HomePage implements OnInit {
     { id: THEMES['manoir'].id, label: '🏰 Manoir' },
     { id: THEMES['hante'].id, label: '🎃 Manoir hanté' },
   ];
-  readonly diffs: { id: Difficulty; label: string }[] = [
-    { id: 'facile', label: 'Facile · 5×5' },
-    { id: 'moyen', label: 'Moyen · 6×6' },
-    { id: 'difficile', label: 'Difficile · 7×7' },
+  readonly diffs: { id: Difficulty; name: string; size: string }[] = [
+    { id: 'facile', name: 'Facile', size: '5×5' },
+    { id: 'moyen', name: 'Moyen', size: '6×6' },
+    { id: 'difficile', name: 'Difficile', size: '7×7' },
   ];
 
   constructor() {
