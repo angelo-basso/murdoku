@@ -98,6 +98,45 @@ function mummyFace(g) {
   rect(g, cx - 2, 26, 4, 1, '#9c8f76');
 }
 
+// --- couvre-chefs & accessoires (personnel, manoir) ---
+const hardhat = (g, hair, col, hi) => {
+  hairShort(g, hair, hair);
+  ell(g, cx, cy - ry + 3, rx + 1, 5, col, (x, y) => y < cy - ry + 5);
+  rect(g, cx - rx - 2, cy - ry + 4, 2 * rx + 5, 2, col); rect(g, cx - 1, cy - ry - 2, 2, 6, hi);
+};
+const toque = (g) => {
+  rect(g, cx - rx + 1, cy - ry, 2 * rx - 1, 3, '#f4f4f8');
+  ell(g, cx - 4, cy - ry - 3, 4, 4, '#f4f4f8'); ell(g, cx + 4, cy - ry - 3, 4, 4, '#f4f4f8'); ell(g, cx, cy - ry - 5, 5, 5, '#ffffff');
+  rect(g, cx - rx + 1, cy - ry + 2, 2 * rx - 1, 1, '#d6d6e0');
+};
+const maidCap = (g) => { rect(g, cx - 6, cy - ry - 1, 13, 2, '#f4f4f8'); for (let x = cx - 6; x <= cx + 6; x += 2) set(g, x, cy - ry - 2, '#f4f4f8'); };
+const tie = (g, col) => { rect(g, cx - 3, 33, 2, 2, '#f2f2f2'); rect(g, cx + 2, 33, 2, 2, '#f2f2f2'); rect(g, cx - 1, 33, 3, 10, col); set(g, cx, 43, col); };
+const mustache = (g, col) => { rect(g, cx - 3, 24, 7, 1, col); set(g, cx - 4, 25, col); set(g, cx + 3, 25, col); };
+const earrings = (g) => { set(g, cx - rx - 1, cy + 3, '#e6c04a'); set(g, cx + rx, cy + 3, '#e6c04a'); };
+const lips = (g) => rect(g, cx - 2, 25, 5, 1, '#c0392b');
+const stubble = (g) => { for (let x = cx - 5; x <= cx + 5; x += 2) { set(g, x, 27, '#9a7458'); set(g, x + 1, 28, '#9a7458'); } };
+const vestStripes = (g) => { rect(g, cx - 14, 38, 29, 2, '#e8e8e8'); rect(g, cx - 3, 33, 2, 13, '#e8e8e8'); rect(g, cx + 2, 33, 2, 13, '#e8e8e8'); };
+const capBack = (g, hair, col) => { hairShort(g, hair, hair); ell(g, cx, cy - ry + 2, rx, 4, col); rect(g, cx - rx, cy - ry + 4, 2 * rx + 1, 2, col); rect(g, cx + rx - 1, cy - ry + 4, 5, 1, col); };
+const secCap = (g, hair) => { cap(g, hair, '#1f2a44'); rect(g, cx - 1, cy - ry + 1, 3, 2, '#e6c04a'); };
+const bob = (g, c, c2) => { ell(g, cx, cy - 1, rx + 2, ry + 1, c, (x, y) => (x < cx - rx + 2 || x > cx + rx - 3 || y < cy - 4) && y < cy + 5); ell(g, cx, cy - 3, rx, ry - 2, c2, (x, y) => y < cy - 4); };
+const ponytail = (g, c, c2) => { hairShort(g, c, c2); rect(g, cx + rx, cy - 3, 3, 11, c); };
+const receding = (g, c) => { rect(g, cx - rx, cy - 4, 2, 6, c); rect(g, cx + rx - 1, cy - 4, 2, 6, c); };
+function ghostFace(g) {
+  ell(g, cx, cy + 6, rx + 5, ry + 10, '#eef2ff', (x, y) => y < HT);
+  ell(g, cx, cy + 6, rx + 5, ry + 10, '#cfd6f0', (x, y) => y < HT && x > cx + 6);
+  for (let x = cx - rx - 5; x <= cx + rx + 5; x += 4) { g[HT - 1][x] = null; g[HT - 1][x + 1] = null; }
+  ell(g, cx - 4, cy, 2, 3, '#1a1430'); ell(g, cx + 4, cy, 2, 3, '#1a1430'); ell(g, cx, cy + 7, 2, 3, '#1a1430');
+}
+function scarecrowFace(g) {
+  charBase(g, '#c9a46a', '#a9844e');
+  rect(g, cx - rx, cy + 1, 2 * rx, 1, '#8a6a3a');
+  ell(g, cx - 4, 19, 1.6, 1.6, '#1a1420'); ell(g, cx + 4, 19, 1.6, 1.6, '#1a1420');
+  rect(g, cx - 4, 25, 9, 1, '#3a2a1a'); for (const dx of [-3, -1, 1, 3]) { set(g, cx + dx, 24, '#3a2a1a'); set(g, cx + dx, 26, '#3a2a1a'); }
+  strawhat(g, '#e0c060');
+  for (const [x, y] of [[cx - rx - 2, cy + 2], [cx - rx - 3, cy + 4], [cx + rx + 1, cy + 3], [cx + rx + 2, cy + 5]]) rect(g, x, y, 2, 1, '#e0c060');
+  rect(g, cx - 14, 37, 29, 1, '#7a2a1a'); rect(g, cx - 14, 41, 29, 1, '#7a2a1a'); rect(g, cx - 5, 33, 1, 13, '#7a2a1a'); rect(g, cx + 5, 33, 1, 13, '#7a2a1a');
+}
+
 const CHARS = {
   plaquiste: { skin: ['#f2c79c', '#d99f73'], outfit: ['#3f6ea5', '#2f4f85'], hair: g => cap(g, '#6b4a2e', '#4a4a55') },
   notaire: { skin: ['#e8bd92', '#d99f73'], outfit: ['#8a3f6a', '#6a2f52'], hair: g => bun(g, '#3a2a22', '#4a362b'), acc: glasses },
@@ -113,6 +152,20 @@ const CHARS = {
   loupgarou: { skin: ['#8a6b47', '#6e5436'], outfit: ['#3a342c', '#241f18'], hair: g => { hairShort(g, '#5a452e', '#45351f'); wolfEars(g, '#5a452e'); }, acc: fangs },
   momie: { skin: ['#e8e0cf', '#cfc6b2'], outfit: ['#cfc7b0', '#ab9f84'], custom: mummyFace },
   squelette: { skin: ['#ece7df', '#dcd5c8'], outfit: ['#2a2a33', '#16161c'], custom: skullFace },
+  fantome: { skin: ['#eef2ff', '#cfd6f0'], outfit: ['#eef2ff', '#cfd6f0'], custom: ghostFace },
+  epouvantail: { skin: ['#c9a46a', '#a9844e'], outfit: ['#b8452a', '#8a321e'], custom: scarecrowFace },
+  // --- manoir (compléments pour 8×8 / 9×9) ---
+  cuisinier: { skin: ['#efc39a', '#d39c70'], outfit: ['#f0f0f4', '#c8cad4'], hair: g => { hairShort(g, '#4a3526', '#5a4232'); toque(g); }, acc: g => mustache(g, '#4a3526') },
+  gouvernante: { skin: ['#e9bf98', '#cf9f78'], outfit: ['#2a2a36', '#1a1a24'], hair: g => { bun(g, '#9a95a8', '#b4afc2'); maidCap(g); }, acc: g => { rect(g, cx - 4, 33, 9, 2, '#f4f4f8'); } },
+  // --- personnel d'entreprise (bureaux & usine) ---
+  ouvrier: { skin: ['#e3b483', '#c08a5c'], outfit: ['#3d5a8a', '#2b4268'], hair: g => hardhat(g, '#3a2a20', '#f2c230', '#ffe07a'), acc: stubble },
+  contremaitre: { skin: ['#e8b98e', '#c9966a'], outfit: ['#f07a1a', '#c45e10'], hair: g => receding(g, '#8a8494'), acc: g => { mustache(g, '#6a6474'); vestStripes(g); } },
+  ingenieure: { skin: ['#f0c89c', '#d39f74'], outfit: ['#4a7a6a', '#355a4e'], hair: g => { ponytail(g, '#3a2a22', '#4a362b'); hardhat(g, '#3a2a22', '#f4f4f8', '#ffffff'); }, acc: glasses },
+  secretaire: { skin: ['#f2c9a0', '#d8a47a'], outfit: ['#b0406a', '#8a3052'], hair: g => hairLong(g, '#d9b45e', '#e9c877'), acc: g => { lips(g); earrings(g); } },
+  comptable: { skin: ['#ecc095', '#cf9b70'], outfit: ['#3a3f52', '#262a38'], hair: g => hairShort(g, '#5a3f2a', '#6b4d35'), acc: g => { glasses(g); tie(g, '#c43f4f'); } },
+  directrice: { skin: ['#d9a07a', '#b8805a'], outfit: ['#1f2a44', '#141c30'], hair: g => bob(g, '#1a1420', '#2a2030'), acc: g => { earrings(g); lips(g); rect(g, cx - 3, 33, 2, 2, '#f2f2f2'); rect(g, cx + 2, 33, 2, 2, '#f2f2f2'); } },
+  stagiaire: { skin: ['#f2c9a0', '#d8a47a'], outfit: ['#4fa3d4', '#3a82b0'], hair: g => capBack(g, '#6b4a2e', '#c43f4f') },
+  vigile: { skin: ['#9a6a48', '#7a5034'], outfit: ['#1f2a44', '#141c30'], hair: g => secCap(g, '#1a1420'), acc: g => { rect(g, cx + 5, 37, 3, 3, '#e6c04a'); } },
 };
 for (const [id, ch] of Object.entries(CHARS)) {
   const g = grid(W, HT);
@@ -133,6 +186,8 @@ const FURN = {
   'lit:bleu': g => bed(g, 'bleu'), 'lit:rouge': g => bed(g, 'rouge'), 'lit:vert': g => bed(g, 'vert'),
   chaise: chair, canape: sofa, table: tableF, plante: plant, biblio: shelf, coiffeuse: vanity,
   fauteuil: armchair, cercueil: coffin, chaudron: cauldron, candelabre: candelabra, tombe: tombstone, toile: cobweb,
+  siege: officeChair, pouf, bureau: desk, imprimante: printer, fontaine: waterCooler, armoire: cabinet,
+  tabouret: stool, banc: bench, machine, caisses: crates, fut: barrel, chariot: forklift,
 };
 function bed(g, col) { rect(g, 4, 2, 16, 20, WD2); rect(g, 6, 3, 12, 18, '#efe7d8'); rect(g, 6, 10, 12, 11, duvet[col]); rect(g, 7, 4, 10, 5, '#ffffff'); rect(g, 6, 14, 12, 1, '#0003'); }
 function chair(g) { rect(g, 7, 8, 10, 10, WD); rect(g, 7, 6, 10, 2, WD2); rect(g, 8, 9, 8, 8, '#7d5c42'); }
@@ -148,6 +203,21 @@ function cauldron(g) { ell(g, 12, 13, 8, 7, '#2a2a30'); ell(g, 12, 9, 8, 3, '#1a
 function candelabra(g) { rect(g, 11, 8, 2, 12, '#c9a24e'); rect(g, 6, 10, 12, 1, '#c9a24e'); rect(g, 6, 8, 2, 3, '#c9a24e'); rect(g, 16, 8, 2, 3, '#c9a24e'); for (const x of [6, 11, 16]) { rect(g, x, 5, 2, 3, '#efe7d8'); set(g, x, 3, '#f5a623'); set(g, x + 1, 4, '#f5d04e'); } rect(g, 8, 20, 8, 1, '#a07d2e'); }
 function tombstone(g) { for (let y = 5; y < 20; y++) { const w = y < 9 ? 6 + (y - 5) * 2 : 14; rect(g, 12 - Math.floor(w / 2), y, w, 1, '#8d8f98'); } rect(g, 5, 20, 14, 2, '#5a5c64'); rect(g, 9, 11, 1, 4, '#5a5c64'); rect(g, 9, 11, 4, 1, '#5a5c64'); rect(g, 14, 11, 1, 6, '#5a5c64'); }
 function cobweb(g) { for (let i = 0; i < 8; i++) { const a = i * Math.PI / 7; rect(g, 1, 1, Math.round(1 + Math.cos(a) * 18), 1, '#b9b9c4'); } for (let r2 = 4; r2 <= 16; r2 += 4) for (let i = 0; i < 9; i++) { const a = i * Math.PI / 16; set(g, 1 + Math.round(Math.cos(a) * r2), 1 + Math.round(Math.sin(a) * r2), '#9a9aa6'); } }
+
+// --- mobilier bureaux ---
+function officeChair(g) { ell(g, 12, 18, 7, 2, '#3a3a44'); for (const x of [5, 12, 19]) set(g, x, 20, '#1a1a22'); rect(g, 11, 14, 2, 4, '#3a3a44'); ell(g, 12, 11, 6, 5, '#2c3e60'); ell(g, 12, 11, 4, 3, '#3a5280'); rect(g, 7, 3, 10, 4, '#22324e'); }
+function pouf(g) { ell(g, 12, 12, 8, 7, '#2a9d8f'); ell(g, 11, 10, 5, 4, '#3cb8a8'); set(g, 12, 12, '#1d6f65'); }
+function desk(g) { rect(g, 2, 5, 20, 14, '#8a6a4a'); rect(g, 2, 17, 20, 2, '#6b4f3a'); rect(g, 8, 6, 8, 6, '#1a1a22'); rect(g, 9, 7, 6, 4, '#4fa3d4'); rect(g, 8, 13, 8, 2, '#cfcfd8'); rect(g, 18, 8, 2, 2, '#f4f4f8'); }
+function printer(g) { rect(g, 4, 8, 16, 11, '#d8d8e0'); rect(g, 6, 4, 12, 5, '#f8f8fc'); rect(g, 4, 17, 16, 2, '#a8a8b4'); rect(g, 15, 10, 3, 2, '#4fd47a'); rect(g, 6, 14, 12, 1, '#666670'); }
+function waterCooler(g) { rect(g, 7, 12, 10, 9, '#e6e6ee'); rect(g, 7, 19, 10, 2, '#b8b8c4'); ell(g, 12, 7, 5, 6, '#5aa9e6'); ell(g, 11, 6, 2, 3, '#9fd2f5'); rect(g, 11, 14, 2, 2, '#4f78c4'); }
+function cabinet(g) { rect(g, 4, 3, 16, 18, '#7d8794'); for (const y of [8, 13]) rect(g, 5, y, 14, 1, '#5a636e'); for (const y of [5, 10, 16]) rect(g, 11, y, 3, 1, '#e6c04a'); }
+// --- mobilier usine ---
+function stool(g) { for (const [x, y] of [[6, 6], [17, 6], [6, 17], [17, 17]]) rect(g, x, y, 2, 2, '#4a3526'); ell(g, 12, 12, 6, 6, '#8a6a4a'); ell(g, 12, 12, 4, 4, '#a07d58'); }
+function bench(g) { rect(g, 2, 7, 20, 10, '#8a6a4a'); for (const y of [9, 12, 15]) rect(g, 2, y, 20, 1, '#6b4f3a'); rect(g, 3, 17, 2, 2, '#4a3526'); rect(g, 19, 17, 2, 2, '#4a3526'); }
+function machine(g) { rect(g, 2, 3, 20, 18, '#6b7380'); rect(g, 4, 5, 8, 6, '#3a4048'); rect(g, 5, 6, 6, 1, '#4fd47a'); ell(g, 17, 8, 3, 3, '#e8e8e8'); rect(g, 17, 6, 1, 3, '#c43f4f'); for (let x = 2; x < 22; x += 4) { rect(g, x, 18, 2, 3, '#f2c230'); rect(g, x + 2, 18, 2, 3, '#1a1a22'); } }
+function crates(g) { const box = (x, y, s, c, d) => { rect(g, x, y, s, s, c); for (let i = 0; i < s; i++) { set(g, x + i, y + i, d); set(g, x + s - 1 - i, y + i, d); } rect(g, x, y, s, 1, d); rect(g, x, y + s - 1, s, 1, d); }; box(2, 10, 11, '#b58a52', '#8a6438'); box(11, 3, 11, '#c49a60', '#946c42'); }
+function barrel(g) { ell(g, 12, 12, 8, 8, '#3f6e8c'); ell(g, 12, 12, 6, 6, '#335a74'); ell(g, 12, 12, 4, 4, '#5a8aa8'); rect(g, 10, 11, 4, 2, '#f2c230'); }
+function forklift(g) { rect(g, 7, 1, 2, 7, '#9a9aa6'); rect(g, 15, 1, 2, 7, '#9a9aa6'); rect(g, 5, 7, 14, 14, '#e0a830'); rect(g, 7, 10, 10, 6, '#333340'); for (const [x, y] of [[4, 8], [18, 8], [4, 18], [18, 18]]) rect(g, x, y, 2, 3, '#1a1a22'); }
 
 for (const [key, draw] of Object.entries(FURN)) {
   writeFileSync(ROOT + `src/assets/furniture/${key.replace(':', '-')}.svg`, tile(draw));
