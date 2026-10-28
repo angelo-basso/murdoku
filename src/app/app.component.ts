@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
+import { AudioService } from './core/services/audio.service';
+import { SettingsService } from './core/services/settings.service';
 
 @Component({
   selector: 'app-root',
@@ -11,4 +13,8 @@ import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
     </ion-app>
   `,
 })
-export class AppComponent {}
+export class AppComponent {
+  // Instanciés au démarrage : réglages appliqués, son prêt au premier geste.
+  private settings = inject(SettingsService);
+  private audio = inject(AudioService);
+}

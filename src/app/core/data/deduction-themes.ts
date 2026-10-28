@@ -283,3 +283,10 @@ export const THEMES: Record<string, DeductionTheme> = {
   [FACTORY_THEME.id]: FACTORY_THEME,
 };
 export const THEME_LIST: DeductionTheme[] = [CLASSIC_THEME, HAUNTED_THEME, OFFICE_THEME, FACTORY_THEME];
+
+/** Nom d'un meuble pour la lecture vocale (« une chaise », « le lit bleu »). */
+export function furnName(code: string): string {
+  const f = FURNITURE[code];
+  if (!f) return 'sol nu';
+  return f.next.replace(/^du /, 'le ').replace(/^de /, '').replace(/^d'/, '');
+}

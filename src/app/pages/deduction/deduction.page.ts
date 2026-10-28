@@ -1,13 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import {
-  IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar,
+  IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar, NavController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBack, bulbOutline, refreshOutline, listOutline, createOutline, shareSocialOutline, pauseOutline, playOutline, timeOutline } from 'ionicons/icons';
 import { findDeductionCase } from '../../core/data/deduction-cases';
+import { FURNITURE, furnName } from '../../core/data/deduction-themes';
+import { AnnouncerService } from '../../core/services/announcer.service';
+import { AudioService, MusicId } from '../../core/services/audio.service';
+import { FeedbackService } from '../../core/services/feedback.service';
 import { Clue, DeductionCase, LevelDef } from '../../core/models/deduction.models';
 import { DeductionGameService } from '../../core/services/deduction-game.service';
 import { DeductionGeneratorService } from '../../core/services/deduction-generator.service';
@@ -43,7 +46,7 @@ const TINT: Record<string, string> = {
     <ion-header [translucent]="true">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button (click)="goHome()" aria-label="Retour"><ion-icon slot="icon-only" name="arrow-back"></ion-icon></ion-button>
+          <ion-button (click)="goHome()" aria-label="Retour à la liste"><ion-icon slot="icon-only" name="arrow-back"></ion-icon></ion-button>
         </ion-buttons>
         <ion-title>{{ titleMain() }}</ion-title>
         <ion-buttons slot="end">
@@ -57,7 +60,7 @@ const TINT: Record<string, string> = {
         <!-- Barre d'infos compacte -->
         <div class="infobar">
           <span class="chip">{{ titleSub() }}{{ titleSub() ? ' · ' : '' }}{{ c.n }}×{{ c.n }}</span>
-          <span class="timer" aria-label="Temps écoulé"><ion-icon name="time-outline"></ion-icon>{{ time() }}</span>
+          <span class="timer" [attr.aria-label]="'Temps écoulé ' + time()" role="timer"><ion-icon name="time-outline"></ion-icon>{{ time() }}</span>
           <span class="progress">
             <span class="bar"><span class="fill" [style.width.%]="placedCount() / c.people.length * 100"></span></span>
             {{ placedCount() }}/{{ c.people.length }} placés
@@ -65,43 +68,48 @@ const TINT: Record<string, string> = {
         </div>
 
         <!-- Plateau -->
-        <div class="board" [style.--n]="c.n" [class.selecting]="!!game.selected() && !game.notesMode()">
+        <h2 class="sr-only">Plateau</h2>
+        <div class="board" [style.--n]="c.n" [class.selecting]="!!game.selected() && !game.notesMode()"
+          role="group" [attr.aria-label]="'Plateau de ' + c.n + ' lignes et ' + c.n + ' colonnes. Flèches du clavier pour se déplacer.'"
+          (keydown)="onBoardKey($event)">
           @for (cell of cells(); track cell.r + '-' + cell.col) {
             <button type="button" class="cell"
               [class.blocked]="cell.blocked" [class.conflict]="cell.conflict"
               [class.wall-r]="cell.wallR" [class.wall-b]="cell.wallB"
               [class.target]="cell.target" [class.taken]="cell.taken"
               [attr.data-r]="cell.r" [attr.data-c]="cell.col"
-              [attr.aria-label]="cellLabel(cell)"
+              [attr.aria-label]="cellLabel(cell)" [attr.tabindex]="cell.r === focusR() && cell.col === focusC() ? 0 : -1"
+              (focus)="focusR.set(cell.r); focusC.set(cell.col)"
               [style.background]="cell.tint" (click)="onCell(cell.r, cell.col)">
               @if (cell.furn) { <img class="furn" [src]="cell.furn" alt="" draggable="false" /> }
               @if (cell.occAvatar) {
                 <img class="token" [class.victim]="cell.occVictim" [class.sel]="cell.selectedHere"
-                  [src]="cell.occAvatar" [alt]="cell.occName!" draggable="false"
+                  [src]="cell.occAvatar" alt="" draggable="false"
                   (pointerdown)="dragStart(cell.occupant!, $event)" />
               }
-              @if (cell.elim) { <span class="xmark">✕</span> }
-              @else if (cell.autoX) { <span class="xmark auto">✕</span> }
+              @if (cell.elim) { <span class="xmark" aria-hidden="true">✕</span> }
+              @else if (cell.autoX) { <span class="xmark auto" aria-hidden="true">✕</span> }
             </button>
           }
           <!-- Noms des pièces : calque au-dessus, lisibles et non tronqués par la case -->
           @for (lb of roomLabels(); track lb.room) {
-            <span class="room-label" [style.left.%]="lb.left" [style.top.%]="lb.top" [style.max-width.%]="lb.max">{{ lb.name }}</span>
+            <span class="room-label" aria-hidden="true" [style.left.%]="lb.left" [style.top.%]="lb.top" [style.max-width.%]="lb.max">{{ lb.name }}</span>
           }
         </div>
 
         <!-- Aide contextuelle -->
-        <p class="status" [class.warn]="statusWarn()" aria-live="polite">
+        <p class="status" [class.warn]="statusWarn()">
           {{ status() }}
           @if (selectedPlaced()) { <button type="button" class="unplace" (click)="onUnplace()">↩ Retirer</button> }
         </p>
 
         <!-- Personnes -->
+        <h2 class="sr-only">Personnes à placer</h2>
         <div class="tray" [style.--n]="trayCols()">
           @for (p of people(); track p.id) {
             <button type="button" class="person" [class.sel]="p.selected" [class.placed]="p.placed"
               [class.victim]="p.victim" (pointerdown)="dragStart(p.id, $event)" (click)="onPerson(p.id)"
-              [attr.aria-pressed]="p.selected" [attr.aria-label]="p.name + (p.placed ? ' (placé)' : '')">
+              [attr.aria-pressed]="p.selected" [attr.aria-label]="p.label">
               <img [src]="p.avatar" alt="" draggable="false" />
               <span>{{ p.short }}</span>
               @if (p.placed) { <i class="check" aria-hidden="true">✓</i> }
@@ -111,28 +119,38 @@ const TINT: Record<string, string> = {
 
         <!-- Contrôles -->
         <div class="controls">
-          <button type="button" class="ctrl" [class.active]="game.notesMode()" (click)="game.toggleNotesMode()">
+          <button type="button" class="ctrl" [class.active]="game.notesMode()" [attr.aria-pressed]="game.notesMode()" (click)="toggleNotes()">
             <ion-icon name="create-outline"></ion-icon><span>Rature</span>
           </button>
-          <button type="button" class="ctrl" (click)="onHint()">
+          <button type="button" class="ctrl" (click)="onHint()" aria-label="Indice : place correctement une personne">
             <ion-icon name="bulb-outline"></ion-icon><span>Indice</span>
           </button>
-          <button type="button" class="ctrl" (click)="showClues = !showClues">
+          <button type="button" class="ctrl" (click)="showClues = !showClues" [attr.aria-expanded]="showClues">
             <ion-icon name="list-outline"></ion-icon><span>{{ showClues ? 'Masquer' : 'Indices' }}</span>
           </button>
         </div>
 
         @if (showClues) {
-          <h3 class="clues-title">Indices <small>· touche pour barrer</small></h3>
+          <h2 class="clues-title">Indices <small>· touche pour barrer</small></h2>
           <ol class="clues">
             @for (cl of clueStates(); track $index) {
-              <li [class.ok]="cl.state === 'ok'" [class.bad]="cl.state === 'bad'" [class.struck]="cl.struck"
-                (click)="toggleStrike($index)">
-                <span class="mark" aria-hidden="true">{{ cl.state === 'ok' ? '✓' : cl.state === 'bad' ? '!' : '' }}</span>
-                <span class="txt">{{ cl.text }}</span>
+              <li [class.ok]="cl.state === 'ok'" [class.bad]="cl.state === 'bad'" [class.struck]="cl.struck">
+                <button type="button" class="clue-btn" (click)="toggleStrike($index)" [attr.aria-pressed]="cl.struck"
+                  [attr.aria-label]="'Indice ' + ($index + 1) + ' : ' + cl.text + ' ' + stateLabel(cl.state) + (cl.struck ? ' Barré.' : '')">
+                  <span class="mark" aria-hidden="true">{{ cl.state === 'ok' ? '✓' : cl.state === 'bad' ? '!' : '' }}</span>
+                  <span class="txt">{{ cl.text }}</span>
+                </button>
               </li>
             }
           </ol>
+
+          <!-- Plan des pièces, pour les lecteurs d'écran -->
+          <section class="sr-only" aria-label="Plan des pièces">
+            <h2>Plan des pièces</h2>
+            <ul>
+              @for (rm of roomPlan(); track rm.name) { <li>{{ rm.text }}</li> }
+            </ul>
+          </section>
         }
 
         @if (share) {
@@ -152,8 +170,8 @@ const TINT: Record<string, string> = {
 
       @if (game.paused() && !game.culprit()) {
         <div class="pause-overlay">
-          <div class="pause-card">
-            <h2>Pause</h2>
+          <div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+            <h2 id="pause-title" tabindex="-1" class="dlg-focus">Pause</h2>
             <p class="ptime">{{ time() }}</p>
             <p class="phint">Ta partie est sauvegardée : tu pourras la reprendre plus tard depuis l'accueil.</p>
             <div class="acts">
@@ -166,25 +184,25 @@ const TINT: Record<string, string> = {
       }
 
       @if (dragId(); as did) {
-        <img class="drag-ghost" [src]="avatar(did)" [style.left.px]="dragX()" [style.top.px]="dragY()" alt="" />
+        <img class="drag-ghost" aria-hidden="true" [src]="avatar(did)" [style.left.px]="dragX()" [style.top.px]="dragY()" alt="" />
       }
 
       @if (game.culprit(); as culprit) {
         <div class="reveal-overlay">
-          <div class="confetti">
+          <div class="confetti" aria-hidden="true">
             @for (i of confettiBits; track i) { <span [style.left.%]="i.l" [style.background]="i.c" [style.animation-delay.s]="i.d"></span> }
           </div>
-          <div class="reveal-card">
-            <div class="stamp">AFFAIRE RÉSOLUE</div>
-            <img class="culprit" [src]="avatar(culprit.id)" [alt]="culprit.name" />
-            <h2>Le coupable&nbsp;: {{ culprit.name }}</h2>
-            <p>Seul avec la victime, il ne pouvait être que le meurtrier.</p>
+          <div class="reveal-card" role="dialog" aria-modal="true" aria-labelledby="reveal-title">
+            <div class="stamp" aria-hidden="true">AFFAIRE RÉSOLUE</div>
+            <img class="culprit" [src]="avatar(culprit.id)" alt="" />
+            <h2 id="reveal-title" tabindex="-1" class="dlg-focus">Le coupable&nbsp;: {{ culprit.name }}</h2>
+            <p>Seul suspect dans la pièce de la victime : c'est le meurtrier.</p>
             <p class="ptime">⏱ {{ time() }}@if (bestTime()) { <small> · record {{ bestTime() }}</small> }</p>
             <div class="acts">
               @if (nextLevel(); as nx) {
                 <ion-button expand="block" (click)="openLevel(nx.id)">Niveau suivant ({{ nx.index }}/20)</ion-button>
               }
-              <ion-button expand="block" [fill]="nextLevel() ? 'outline' : 'solid'" (click)="goHome()">Retour aux affaires</ion-button>
+              <ion-button expand="block" [fill]="nextLevel() ? 'outline' : 'solid'" (click)="goHome()">{{ level ? 'Retour aux affaires' : 'Retour' }}</ion-button>
               <ion-button expand="block" fill="clear" (click)="resetAll()">Rejouer</ion-button>
             </div>
           </div>
@@ -329,6 +347,9 @@ const TINT: Record<string, string> = {
     @keyframes fall { 0% { transform: translateY(-20px) rotate(0); opacity: 1; }
       100% { transform: translateY(105vh) rotate(540deg); opacity: 0.9; } }
 
+    .clue-btn { all: unset; display: flex; gap: 10px; align-items: flex-start; width: 100%; cursor: pointer; }
+    .clue-btn:focus-visible { outline: 3px solid #f3d57a; outline-offset: 2px; border-radius: 6px; }
+    .dlg-focus:focus { outline: none; }
     @media (prefers-reduced-motion: reduce) {
       .token, .reveal-card, .reveal-overlay, .cell.target::before { animation: none; }
       .confetti { display: none; }
@@ -342,11 +363,19 @@ export class DeductionPage implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private progress = inject(ProgressService);
+  private feedback = inject(FeedbackService);
+  private announcer = inject(AnnouncerService);
+  private audio = inject(AudioService);
+  private nav = inject(NavController);
+  private music: MusicId = 'manoir';
 
   showClues = true;
+  /** Case qui reçoit le focus clavier (navigation aux flèches). */
+  readonly focusR = signal(0);
+  readonly focusC = signal(0);
   readonly loading = signal(true);
   readonly error = signal('');
-  private level: LevelDef | null = null;
+  level: LevelDef | null = null;
   private levels: LevelDef[] = [];
   private saveRoute: string[] = [];
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -371,21 +400,49 @@ export class DeductionPage implements OnInit, OnDestroy {
   constructor() {
     addIcons({ arrowBack, refreshOutline, bulbOutline, listOutline, createOutline, shareSocialOutline, pauseOutline, playOutline, timeOutline });
 
-    // Retour haptique : léger à chaque pose, succès à la résolution.
-    let lastCount = 0;
+    // Son, vibration et annonces vocales à chaque coup.
+    let prev: Record<string, [number, number] | null> = {};
+    let prevCase: string | null = null;
     effect(() => {
-      const n = this.placedCount();
-      if (n > lastCount) this.haptic('light');
-      lastCount = n;
+      const c = this.game.currentCase();
+      const place = this.game.placement();
+      if (!c) return;
+      if (prevCase !== c.id || this.loading()) { prevCase = c.id; prev = { ...place }; return; }
+      for (const p of c.people) {
+        const a = prev[p.id], b = place[p.id];
+        if (a?.[0] === b?.[0] && a?.[1] === b?.[1]) continue;
+        if (b) { this.feedback.emit('place'); this.announcer.say(this.whereText(p.name, b[0], b[1])); }
+        else { this.feedback.emit('remove'); this.announcer.say(`${p.name} retourne dans la réserve.`); }
+      }
+      prev = { ...place };
+    });
+    // Erreur : nouveau conflit ou indice contredit.
+    let lastErr = 0;
+    effect(() => {
+      const err = this.game.conflicts().size + this.badClues();
+      if (err > lastErr && !this.loading()) {
+        this.feedback.emit('error');
+        untracked(() => this.announcer.say(this.errorText()));
+      }
+      lastErr = err;
+    });
+    let lastElim = 0;
+    effect(() => {
+      const n = Object.values(this.game.elim()).reduce((k, set) => k + set.size, 0);
+      if (n !== lastElim && !this.loading()) this.feedback.emit('note');
+      lastElim = n;
     });
     let recorded: string | null = null;
     effect(() => {
       const c = this.game.currentCase();
-      if (!this.game.culprit() || !c || recorded === c.id) return;
+      const culprit = this.game.culprit();
+      if (!culprit || !c || recorded === c.id) return;
       recorded = c.id;
-      this.haptic('success');
+      this.feedback.emit('win');
       const ms = untracked(() => this.game.elapsed());
+      this.announcer.alert(`Affaire résolue ! Le coupable est ${culprit.name}. Temps : ${formatTime(ms)}.`);
       this.progress.recordWin(c.id, ms, !!this.level);
+      setTimeout(() => (document.querySelector('#reveal-title') as HTMLElement | null)?.focus(), 300);
     }, { allowSignalWrites: true });
 
     // Sauvegarde automatique (différée) à chaque coup.
@@ -397,11 +454,48 @@ export class DeductionPage implements OnInit, OnDestroy {
     });
   }
 
-  private haptic(kind: 'light' | 'success'): void {
-    try {
-      if (kind === 'success') void Haptics.notification({ type: NotificationType.Success });
-      else void Haptics.impact({ style: ImpactStyle.Light });
-    } catch { /* web sans vibration : ignoré */ }
+  /** « Sofia la Peintre est en ligne 3, colonne 2, dans « Salon », sur un canapé. » */
+  private whereText(name: string, r: number, col: number): string {
+    const c = this.game.currentCase()!;
+    const f = c.furniture[r][col];
+    const on = FURNITURE[f]?.on;
+    return `${name} est en ligne ${r + 1}, colonne ${col + 1}, dans « ${c.roomNames[c.rooms[r][col]]} »${on ? ', ' + on : ''}.`;
+  }
+
+  private errorText(): string {
+    const c = this.game.currentCase()!;
+    const bad = this.clueStates().filter((x) => x.state === 'bad').map((x) => x.text);
+    const names = [...this.game.conflicts()].map((id) => c.people.find((p) => p.id === id)?.name).filter(Boolean);
+    if (names.length) return `Attention : ${names.join(' et ')} partagent une ligne, une colonne ou une pièce.`;
+    return bad.length ? `Indice contredit : ${bad[0]}` : 'Erreur.';
+  }
+
+  stateLabel(st: ClueState): string {
+    return st === 'ok' ? 'Respecté.' : st === 'bad' ? 'Contredit.' : 'À vérifier.';
+  }
+
+  toggleNotes(): void {
+    this.game.toggleNotesMode();
+    this.announcer.say(this.game.notesMode() ? 'Mode rature activé : choisis une personne puis les cases où elle ne peut pas être.' : 'Mode rature désactivé.');
+  }
+
+  /** Navigation au clavier dans le plateau (flèches, début/fin). */
+  onBoardKey(ev: KeyboardEvent): void {
+    const c = this.game.currentCase();
+    if (!c) return;
+    let r = this.focusR(), col = this.focusC();
+    switch (ev.key) {
+      case 'ArrowUp': r = Math.max(0, r - 1); break;
+      case 'ArrowDown': r = Math.min(c.n - 1, r + 1); break;
+      case 'ArrowLeft': col = Math.max(0, col - 1); break;
+      case 'ArrowRight': col = Math.min(c.n - 1, col + 1); break;
+      case 'Home': col = 0; break;
+      case 'End': col = c.n - 1; break;
+      default: return;
+    }
+    ev.preventDefault();
+    this.focusR.set(r); this.focusC.set(col);
+    (document.querySelector(`.cell[data-r="${r}"][data-c="${col}"]`) as HTMLElement | null)?.focus();
   }
 
   dragStart(id: string, ev: PointerEvent): void {
@@ -468,12 +562,16 @@ export class DeductionPage implements OnInit, OnDestroy {
     }
 
     if (!c) { this.loading.set(false); this.error.set('Affaire introuvable.'); return; }
+    this.music = (this.level?.theme ?? (code ? this.gen.parseCode(code)?.themeId : 'manoir') ?? 'manoir') as MusicId;
+    this.audio.playMusic(this.music);
     let saved = this.progress.getSave(c.id);
     if (saved && saved.fp !== caseFingerprint(c)) { this.progress.clearSave(c.id); saved = null; } // niveau modifié depuis
     this.game.start(c, saved ?? undefined);
     if (saved) this.struck.set(new Set(saved.struck));
     this.loading.set(false);
   }
+
+  ionViewDidEnter(): void { if (this.game.currentCase()) this.audio.playMusic(this.music); }
 
   ngOnDestroy(): void {
     this.saveNow();
@@ -494,8 +592,11 @@ export class DeductionPage implements OnInit, OnDestroy {
     this.progress.save(c.id, { ...snap, struck: [...this.struck()], savedAt: Date.now(), title: this.titleLong(), route: this.saveRoute, fp: caseFingerprint(c) });
   }
 
-  pause(): void { this.game.pause(); this.saveNow(); }
-  resume(): void { this.game.resume(); }
+  pause(): void {
+    this.game.pause(); this.saveNow();
+    setTimeout(() => (document.querySelector('#pause-title') as HTMLElement | null)?.focus(), 100);
+  }
+  resume(): void { this.game.resume(); this.announcer.say('Partie reprise.'); }
 
   readonly time = computed(() => formatTime(this.game.elapsed()));
   readonly bestTime = computed(() => {
@@ -637,11 +738,13 @@ export class DeductionPage implements OnInit, OnDestroy {
     const c = this.game.currentCase();
     if (!c) return [];
     const sel = this.game.selected();
+    const place = this.game.placement();
     const compact = c.people.length > 6;
     return c.people.map((p) => ({
       id: p.id, name: p.name, short: compact ? p.name.split(/,| le | la | l'/)[0] : p.name.replace(/^(Le |La |L')/, ''),
       avatar: this.avatar(p.id), victim: !!p.victim,
       placed: this.game.isPlaced(p.id), selected: sel === p.id,
+      label: p.name + (p.victim ? ', la victime' : '') + (place[p.id] ? `, en ligne ${place[p.id]![0] + 1}, colonne ${place[p.id]![1] + 1}` : ', pas encore placé'),
     }));
   });
 
@@ -687,14 +790,55 @@ export class DeductionPage implements OnInit, OnDestroy {
   });
   readonly statusWarn = computed(() => !this.game.notesMode() && (this.game.conflicts().size > 0 || this.badClues() > 0));
 
+  /** Lecture complète d'une case pour les lecteurs d'écran. */
   cellLabel(cell: CellVm): string {
-    if (cell.occName) return cell.occName;
-    if (cell.blocked) return 'Case bloquée';
-    return `Case ligne ${cell.r + 1}, colonne ${cell.col + 1}`;
+    const c = this.game.currentCase()!;
+    const code = c.furniture[cell.r][cell.col];
+    const parts = [`Ligne ${cell.r + 1}, colonne ${cell.col + 1}`, c.roomNames[c.rooms[cell.r][cell.col]], furnName(code)];
+    if (cell.blocked) parts.push('case bloquée');
+    else if (cell.occName) parts.push(`occupée par ${cell.occName}${cell.conflict ? ', en conflit' : ''}${cell.selectedHere ? ', sélectionnée' : ''}`);
+    else if (cell.elim) parts.push('raturée');
+    else if (cell.autoX) parts.push('exclue : ligne, colonne ou pièce déjà prise');
+    else parts.push('libre');
+    return parts.join(', ');
   }
 
-  onCell(r: number, col: number): void { this.game.tapCell(r, col); }
-  onPerson(id: string): void { this.game.selectPerson(id); }
+  /** Plan textuel : chaque pièce, ses cases et ses meubles. */
+  readonly roomPlan = computed(() => {
+    const c = this.game.currentCase();
+    if (!c) return [];
+    const byRoom = new Map<string, string[]>();
+    for (let r = 0; r < c.n; r++) for (let col = 0; col < c.n; col++) {
+      const id = c.rooms[r][col];
+      const free = this.solver.occupiable(c, r, col);
+      const list = byRoom.get(id) ?? [];
+      list.push(`ligne ${r + 1} colonne ${col + 1} : ${furnName(c.furniture[r][col])}${free ? '' : ' (bloquée)'}`);
+      byRoom.set(id, list);
+    }
+    return [...byRoom.entries()].map(([id, cells]) => ({ name: c.roomNames[id], text: `${c.roomNames[id]} : ${cells.join(' ; ')}.` }));
+  });
+
+  onCell(r: number, col: number): void {
+    const before = this.game.selected();
+    this.game.tapCell(r, col);
+    const after = this.game.selected();
+    if (after && after !== before) {
+      this.feedback.emit('select');
+      const name = this.game.currentCase()!.people.find((p) => p.id === after)!.name;
+      this.announcer.say(`Sélection : ${name}. Choisis une autre case pour le déplacer, ou touche-le à nouveau pour le retirer.`);
+    }
+  }
+  onPerson(id: string): void {
+    this.game.selectPerson(id);
+    const c = this.game.currentCase()!;
+    const sel = this.game.selected();
+    if (sel) {
+      this.feedback.emit('select');
+      const name = c.people.find((p) => p.id === sel)!.name;
+      const free = this.cells().filter((x) => x.target).length;
+      this.announcer.say(this.game.notesMode() ? `Rature pour ${name}.` : `Sélection : ${name}. ${free} case${free > 1 ? 's' : ''} possible${free > 1 ? 's' : ''}.`);
+    }
+  }
   readonly selectedPlaced = computed(() => {
     const sel = this.game.selected();
     return !!sel && !this.game.notesMode() && !!this.game.placement()[sel];
@@ -703,7 +847,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     const sel = this.game.selected();
     if (sel) { this.game.removePerson(sel); this.game.selectPerson(sel); }
   }
-  onHint(): void { this.game.hint(); }
+  onHint(): void { this.feedback.emit('hint'); this.game.hint(); }
   toggleStrike(i: number): void {
     const s = new Set(this.struck());
     if (s.has(i)) s.delete(i); else s.add(i);
@@ -715,5 +859,11 @@ export class DeductionPage implements OnInit, OnDestroy {
     const c = this.game.currentCase();
     if (c) this.progress.clearSave(c.id);
   }
-  goHome(): void { this.router.navigate(["/home"]); }
+  /** Retour à l'écran d'origine : liste classique, sur mesure, ou règles (initiation). */
+  goHome(): void {
+    const c = this.game.currentCase();
+    if (this.level) void this.nav.navigateBack(['/classique'], { queryParams: { d: this.level.difficulty } });
+    else if (c?.share) void this.nav.navigateBack(['/sur-mesure']);
+    else void this.nav.navigateBack(['/regles']);
+  }
 }
