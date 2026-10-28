@@ -55,3 +55,12 @@ export interface DeductionCase {
 }
 
 export type Placement = Record<string, [number, number] | null>;
+
+/** Niveau prédéfini (affaire figée). */
+export interface LevelDef {
+  id: string;
+  difficulty: Difficulty;
+  index: number;
+  theme: string;
+  case: DeductionCase;
+}

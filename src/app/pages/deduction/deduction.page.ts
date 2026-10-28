@@ -1,17 +1,18 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import {
   IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { arrowBack, bulbOutline, refreshOutline, listOutline, createOutline, shareSocialOutline } from 'ionicons/icons';
+import { arrowBack, bulbOutline, refreshOutline, listOutline, createOutline, shareSocialOutline, pauseOutline, playOutline, timeOutline } from 'ionicons/icons';
 import { findDeductionCase } from '../../core/data/deduction-cases';
-import { Clue } from '../../core/models/deduction.models';
+import { Clue, DeductionCase, LevelDef } from '../../core/models/deduction.models';
 import { DeductionGameService } from '../../core/services/deduction-game.service';
 import { DeductionGeneratorService } from '../../core/services/deduction-generator.service';
 import { DeductionSolverService } from '../../core/services/deduction-solver.service';
+import { ProgressService, formatTime } from '../../core/services/progress.service';
 
 interface CellVm {
   r: number; col: number;
@@ -23,6 +24,8 @@ interface CellVm {
   /** Ligne/colonne déjà prise par une autre personne (sélection active). */
   taken: boolean;
   elim: boolean; selectedHere: boolean;
+  /** Barrée d'office : ligne ou colonne déjà occupée. */
+  autoX: boolean;
 }
 
 type ClueState = 'ok' | 'bad' | 'pending';
@@ -44,7 +47,7 @@ const TINT: Record<string, string> = {
         </ion-buttons>
         <ion-title>{{ titleMain() }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="resetAll()" aria-label="Recommencer"><ion-icon slot="icon-only" name="refresh-outline"></ion-icon></ion-button>
+          <ion-button (click)="pause()" [disabled]="!game.currentCase() || !!game.culprit()" aria-label="Pause"><ion-icon slot="icon-only" name="pause-outline"></ion-icon></ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -54,6 +57,7 @@ const TINT: Record<string, string> = {
         <!-- Barre d'infos compacte -->
         <div class="infobar">
           <span class="chip">{{ titleSub() }}{{ titleSub() ? ' · ' : '' }}{{ c.n }}×{{ c.n }}</span>
+          <span class="timer" aria-label="Temps écoulé"><ion-icon name="time-outline"></ion-icon>{{ time() }}</span>
           <span class="progress">
             <span class="bar"><span class="fill" [style.width.%]="placedCount() / c.people.length * 100"></span></span>
             {{ placedCount() }}/{{ c.people.length }} placés
@@ -77,6 +81,7 @@ const TINT: Record<string, string> = {
                   (pointerdown)="dragStart(cell.occupant!, $event)" />
               }
               @if (cell.elim) { <span class="xmark">✕</span> }
+              @else if (cell.autoX) { <span class="xmark auto">✕</span> }
             </button>
           }
           <!-- Noms des pièces : calque au-dessus, lisibles et non tronqués par la case -->
@@ -89,7 +94,7 @@ const TINT: Record<string, string> = {
         <p class="status" [class.warn]="statusWarn()" aria-live="polite">{{ status() }}</p>
 
         <!-- Personnes -->
-        <div class="tray" [style.--n]="c.people.length">
+        <div class="tray" [style.--n]="trayCols()">
           @for (p of people(); track p.id) {
             <button type="button" class="person" [class.sel]="p.selected" [class.placed]="p.placed"
               [class.victim]="p.victim" (pointerdown)="dragStart(p.id, $event)" (click)="onPerson(p.id)"
@@ -135,6 +140,28 @@ const TINT: Record<string, string> = {
         }
       }
 
+      @if (loading()) {
+        <div class="loading"><div class="spinner"></div><p>Préparation de l'enquête…</p></div>
+      }
+      @if (error()) {
+        <div class="loading"><p>{{ error() }}</p><ion-button (click)="goHome()">Retour</ion-button></div>
+      }
+
+      @if (game.paused() && !game.culprit()) {
+        <div class="pause-overlay">
+          <div class="pause-card">
+            <h2>Pause</h2>
+            <p class="ptime">{{ time() }}</p>
+            <p class="phint">Ta partie est sauvegardée : tu pourras la reprendre plus tard depuis l'accueil.</p>
+            <div class="acts">
+              <ion-button expand="block" (click)="resume()"><ion-icon slot="start" name="play-outline"></ion-icon>Reprendre</ion-button>
+              <ion-button expand="block" fill="outline" (click)="resetAll()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Recommencer</ion-button>
+              <ion-button expand="block" fill="clear" (click)="goHome()">Quitter</ion-button>
+            </div>
+          </div>
+        </div>
+      }
+
       @if (dragId(); as did) {
         <img class="drag-ghost" [src]="avatar(did)" [style.left.px]="dragX()" [style.top.px]="dragY()" alt="" />
       }
@@ -149,9 +176,13 @@ const TINT: Record<string, string> = {
             <img class="culprit" [src]="avatar(culprit.id)" [alt]="culprit.name" />
             <h2>Le coupable&nbsp;: {{ culprit.name }}</h2>
             <p>Seul avec la victime, il ne pouvait être que le meurtrier.</p>
+            <p class="ptime">⏱ {{ time() }}@if (bestTime()) { <small> · record {{ bestTime() }}</small> }</p>
             <div class="acts">
-              <ion-button expand="block" (click)="goHome()">Nouvelle enquête</ion-button>
-              <ion-button expand="block" fill="outline" (click)="resetAll()">Rejouer</ion-button>
+              @if (nextLevel(); as nx) {
+                <ion-button expand="block" (click)="openLevel(nx.id)">Niveau suivant ({{ nx.index }}/20)</ion-button>
+              }
+              <ion-button expand="block" [fill]="nextLevel() ? 'outline' : 'solid'" (click)="goHome()">Retour aux affaires</ion-button>
+              <ion-button expand="block" fill="clear" (click)="resetAll()">Rejouer</ion-button>
             </div>
           </div>
         </div>
@@ -165,7 +196,8 @@ const TINT: Record<string, string> = {
     .chip { background: #ffffff10; border: 1px solid #ffffff1f; padding: 3px 9px; border-radius: 999px;
       text-transform: capitalize; white-space: nowrap; }
     .progress { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
-    .bar { width: 64px; height: 6px; border-radius: 3px; background: #ffffff18; overflow: hidden; }
+    .timer { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; color: #e9e2fb; }
+    .bar { width: 48px; height: 6px; border-radius: 3px; background: #ffffff18; overflow: hidden; }
     .fill { display: block; height: 100%; background: var(--gold); transition: width .25s ease; }
 
     .board {
@@ -257,6 +289,19 @@ const TINT: Record<string, string> = {
     .xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       color: #ff5d72; font-weight: 800; font-size: 1.15rem; pointer-events: none; z-index: 3;
       text-shadow: 0 1px 2px #000; }
+    .xmark.auto { color: #8f87ad; font-size: .85rem; font-weight: 600; opacity: .75; }
+    .loading { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 14px; background: var(--ion-background-color); color: #cfc7e6; text-align: center; padding: 24px; }
+    .spinner { width: 38px; height: 38px; border-radius: 50%; border: 3px solid #ffffff22; border-top-color: var(--gold);
+      animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .pause-overlay { position: fixed; inset: 0; z-index: 45; display: flex; align-items: center; justify-content: center;
+      background: rgba(10,7,20,0.96); padding: 24px; }
+    .pause-card { width: 100%; max-width: 320px; text-align: center; }
+    .pause-card h2 { font: 700 1.6rem Georgia, serif; color: var(--gold); margin: 0 0 4px; }
+    .ptime { font-size: 1.1rem; font-variant-numeric: tabular-nums; color: #e9e2fb; margin: 4px 0 8px; }
+    .ptime small { color: #9a8fc0; font-size: .85rem; }
+    .phint { font-size: 13px; color: #9a8fc0; margin: 0 0 16px; }
     .drag-ghost { position: fixed; width: 58px; height: 64px; transform: translate(-50%, -70%) scale(1.1);
       pointer-events: none; z-index: 60; filter: drop-shadow(0 6px 8px #000c); }
 
@@ -285,14 +330,21 @@ const TINT: Record<string, string> = {
     }
   `],
 })
-export class DeductionPage implements OnInit {
+export class DeductionPage implements OnInit, OnDestroy {
   game = inject(DeductionGameService);
   private solver = inject(DeductionSolverService);
   private gen = inject(DeductionGeneratorService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private progress = inject(ProgressService);
 
   showClues = true;
+  readonly loading = signal(true);
+  readonly error = signal('');
+  private level: LevelDef | null = null;
+  private levels: LevelDef[] = [];
+  private saveRoute: string[] = [];
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
   copied = false;
   private readonly struck = signal<Set<number>>(new Set());
 
@@ -312,7 +364,7 @@ export class DeductionPage implements OnInit {
   }));
 
   constructor() {
-    addIcons({ arrowBack, refreshOutline, bulbOutline, listOutline, createOutline, shareSocialOutline });
+    addIcons({ arrowBack, refreshOutline, bulbOutline, listOutline, createOutline, shareSocialOutline, pauseOutline, playOutline, timeOutline });
 
     // Retour haptique : léger à chaque pose, succès à la résolution.
     let lastCount = 0;
@@ -321,7 +373,23 @@ export class DeductionPage implements OnInit {
       if (n > lastCount) this.haptic('light');
       lastCount = n;
     });
-    effect(() => { if (this.game.culprit()) this.haptic('success'); });
+    let recorded: string | null = null;
+    effect(() => {
+      const c = this.game.currentCase();
+      if (!this.game.culprit() || !c || recorded === c.id) return;
+      recorded = c.id;
+      this.haptic('success');
+      const ms = untracked(() => this.game.elapsed());
+      this.progress.recordWin(c.id, ms, !!this.level);
+    }, { allowSignalWrites: true });
+
+    // Sauvegarde automatique (différée) à chaque coup.
+    effect(() => {
+      this.game.placement(); this.game.elim(); this.struck();
+      if (this.loading() || this.game.culprit()) return;
+      if (this.saveTimer) clearTimeout(this.saveTimer);
+      this.saveTimer = setTimeout(() => this.saveNow(), 600);
+    });
   }
 
   private haptic(kind: 'light' | 'success'): void {
@@ -369,23 +437,81 @@ export class DeductionPage implements OnInit {
     // sinon : simple tap, géré par (click)
   }
 
-  ngOnInit(): void {
-    const code = this.route.snapshot.paramMap.get('code');
-    if (code) {
+  async ngOnInit(): Promise<void> {
+    await this.progress.load();
+    const params = this.route.snapshot.paramMap;
+    const levelId = params.get('id');
+    const code = params.get('code');
+    const caseId = params.get('caseId');
+    let c: DeductionCase | null = null;
+
+    if (levelId) {
+      this.levels = (await import('../../core/data/levels.data')).LEVELS;
+      this.level = this.levels.find((l) => l.id === levelId) ?? null;
+      c = this.level ? structuredClone(this.level.case) : null;
+      this.saveRoute = ['/niveau', levelId];
+    } else if (code) {
+      // Laisse l'écran de chargement s'afficher avant le calcul (jusqu'à ~3 s en expert).
+      await new Promise((r) => setTimeout(r, 30));
       const opts = this.gen.parseCode(code);
-      const c = opts ? this.gen.generate(opts) : null;
-      if (!c) { this.router.navigate(['/home']); return; }
-      this.game.start(c);
-      return;
+      c = opts ? this.gen.generate(opts) : null;
+      this.saveRoute = ['/deduction/gen', code];
+    } else if (caseId) {
+      c = findDeductionCase(caseId) ?? null;
+      this.saveRoute = ['/deduction', caseId];
     }
-    const id = this.route.snapshot.paramMap.get('caseId');
-    const c = id ? findDeductionCase(id) : undefined;
-    if (!c) { this.router.navigate(['/home']); return; }
-    this.game.start(c);
+
+    if (!c) { this.loading.set(false); this.error.set('Affaire introuvable.'); return; }
+    const saved = this.progress.getSave(c.id);
+    this.game.start(c, saved ?? undefined);
+    if (saved) this.struck.set(new Set(saved.struck));
+    this.loading.set(false);
+  }
+
+  ngOnDestroy(): void {
+    this.saveNow();
+    this.game.stopClock();
+  }
+
+  /** Mise en pause automatique quand l'app passe en arrière-plan. */
+  @HostListener('document:visibilitychange')
+  onVisibility(): void {
+    if (document.hidden && this.game.currentCase() && !this.game.culprit()) { this.game.pause(); this.saveNow(); }
+  }
+
+  private saveNow(): void {
+    const c = this.game.currentCase();
+    if (!c || this.loading() || this.game.culprit() || !this.saveRoute.length) return;
+    if (!this.placedCount() && this.game.elapsed() < 5000) return; // rien d'intéressant à reprendre
+    const snap = this.game.snapshot();
+    this.progress.save(c.id, { ...snap, struck: [...this.struck()], savedAt: Date.now(), title: this.titleLong(), route: this.saveRoute });
+  }
+
+  pause(): void { this.game.pause(); this.saveNow(); }
+  resume(): void { this.game.resume(); }
+
+  readonly time = computed(() => formatTime(this.game.elapsed()));
+  readonly bestTime = computed(() => {
+    const id = this.game.currentCase()?.id;
+    const best = id ? this.progress.done()[id]?.bestMs : undefined;
+    return best !== undefined ? formatTime(best) : '';
+  });
+  readonly nextLevel = computed(() => {
+    if (!this.level || !this.game.culprit()) return null;
+    return this.levels.find((l) => l.difficulty === this.level!.difficulty && l.index === this.level!.index + 1) ?? null;
+  });
+  openLevel(id: string): void { this.router.navigate(['/niveau', id], { replaceUrl: true }); }
+
+  private titleLong(): string {
+    const base = this.game.currentCase()?.title ?? '';
+    return this.level ? `${base} · n°${this.level.index}` : base;
   }
 
   // --- En-tête ---
-  readonly titleMain = computed(() => (this.game.currentCase()?.title ?? '').split(' · ')[0]);
+  readonly titleMain = computed(() => {
+    const t = (this.game.currentCase()?.title ?? '').split(' · ')[0];
+    return this.level ? `${t} · n°${this.level.index}` : t;
+  });
   readonly titleSub = computed(() => (this.game.currentCase()?.title ?? '').split(' · ')[1] ?? '');
 
   get share(): string | undefined { return this.game.currentCase()?.share; }
@@ -402,6 +528,12 @@ export class DeductionPage implements OnInit {
     if (type === 'vide') return null;
     return `assets/furniture/${code.replace(':', '-')}.svg`;
   }
+
+  /** Au-delà de 6 personnes, la rangée passe sur deux lignes. */
+  readonly trayCols = computed(() => {
+    const n = this.game.currentCase()?.people.length ?? 6;
+    return n <= 6 ? n : Math.ceil(n / 2);
+  });
 
   readonly placedCount = computed(() => {
     const place = this.game.placement();
@@ -448,6 +580,7 @@ export class DeductionPage implements OnInit {
           taken: guiding && !blocked && !occ && lineTaken,
           target: guiding && !blocked && !occ && !lineTaken && !elim,
           elim, selectedHere: !!occ && occ === sel,
+          autoX: !blocked && !occ && lineTaken,
         });
       }
     }
@@ -473,8 +606,9 @@ export class DeductionPage implements OnInit {
     const c = this.game.currentCase();
     if (!c) return [];
     const sel = this.game.selected();
+    const compact = c.people.length > 6;
     return c.people.map((p) => ({
-      id: p.id, name: p.name, short: p.name.replace(/^(Le |La |L')/, ''),
+      id: p.id, name: p.name, short: compact ? p.name.split(/,| le | la | l'/)[0] : p.name.replace(/^(Le |La |L')/, ''),
       avatar: this.avatar(p.id), victim: !!p.victim,
       placed: this.game.isPlaced(p.id), selected: sel === p.id,
     }));
@@ -534,6 +668,11 @@ export class DeductionPage implements OnInit {
     if (s.has(i)) s.delete(i); else s.add(i);
     this.struck.set(s);
   }
-  resetAll(): void { this.game.reset(); this.struck.set(new Set()); }
+  resetAll(): void {
+    this.game.reset();
+    this.struck.set(new Set());
+    const c = this.game.currentCase();
+    if (c) this.progress.clearSave(c.id);
+  }
   goHome(): void { this.router.navigate(["/home"]); }
 }

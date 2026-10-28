@@ -13,19 +13,56 @@ export class DeductionGameService {
   private readonly elimSig = signal<Record<string, Set<string>>>({});
   private solutionCache: Placement | null = null;
 
+  // Chronomètre (s'arrête en pause et une fois l'affaire résolue)
+  private readonly elapsedSig = signal(0);
+  private readonly pausedSig = signal(false);
+  private clock: ReturnType<typeof setInterval> | null = null;
+  private lastTick = 0;
+  readonly elapsed = this.elapsedSig.asReadonly();
+  readonly paused = this.pausedSig.asReadonly();
+
   readonly currentCase = this.caseSig.asReadonly();
   readonly placement = this.placeSig.asReadonly();
   readonly selected = this.selectedSig.asReadonly();
   readonly notesMode = this.notesModeSig.asReadonly();
   readonly elim = this.elimSig.asReadonly();
 
-  start(c: DeductionCase): void {
+  /** Démarre une affaire, éventuellement depuis une sauvegarde. */
+  start(c: DeductionCase, saved?: { placement: Placement; elim: Record<string, string[]>; elapsedMs: number }): void {
     this.caseSig.set(c);
-    this.placeSig.set(Object.fromEntries(c.people.map((p) => [p.id, null])));
+    const empty = Object.fromEntries(c.people.map((p) => [p.id, null])) as Placement;
+    this.placeSig.set(saved ? { ...empty, ...saved.placement } : empty);
     this.selectedSig.set(null);
     this.notesModeSig.set(false);
-    this.elimSig.set(Object.fromEntries(c.people.map((p) => [p.id, new Set<string>()])));
+    this.elimSig.set(Object.fromEntries(c.people.map((p) => [p.id, new Set<string>(saved?.elim[p.id] ?? [])])));
     this.solutionCache = this.solver.solution(c);
+    this.elapsedSig.set(saved?.elapsedMs ?? 0);
+    this.pausedSig.set(false);
+    this.startClock();
+  }
+
+  private startClock(): void {
+    this.stopClock();
+    this.lastTick = Date.now();
+    this.clock = setInterval(() => {
+      const now = Date.now();
+      if (!this.pausedSig() && !this.solved()) this.elapsedSig.update((v) => v + (now - this.lastTick));
+      this.lastTick = now;
+    }, 500);
+  }
+
+  stopClock(): void {
+    if (this.clock) clearInterval(this.clock);
+    this.clock = null;
+  }
+
+  pause(): void { this.pausedSig.set(true); this.selectedSig.set(null); }
+  resume(): void { this.lastTick = Date.now(); this.pausedSig.set(false); }
+
+  /** État sérialisable pour la sauvegarde. */
+  snapshot(): { placement: Placement; elim: Record<string, string[]>; elapsedMs: number } {
+    const elim = Object.fromEntries(Object.entries(this.elimSig()).map(([k, v]) => [k, [...v]]));
+    return { placement: { ...this.placeSig() }, elim, elapsedMs: this.elapsedSig() };
   }
 
   toggleNotesMode(): void { this.notesModeSig.update((v) => !v); }
@@ -65,7 +102,7 @@ export class DeductionGameService {
   /** Clic sur une case : rature (mode notes), pose la personne sélectionnée, ou retire l'occupant. */
   tapCell(r: number, col: number): void {
     const c = this.caseSig();
-    if (!c || !this.occupiable(r, col)) return;
+    if (!c || this.pausedSig() || !this.occupiable(r, col)) return;
 
     if (this.notesModeSig()) {
       const sel = this.selectedSig();
@@ -92,7 +129,7 @@ export class DeductionGameService {
   /** Place explicitement une personne sur une case (glisser-déposer). */
   placePerson(id: string, r: number, col: number): void {
     const c = this.caseSig();
-    if (!c || !this.occupiable(r, col)) return;
+    if (!c || this.pausedSig() || !this.occupiable(r, col)) return;
     const place = { ...this.placeSig() };
     const occupant = this.occupantAt(r, col);
     if (occupant && occupant !== id) place[occupant] = null;
@@ -114,6 +151,9 @@ export class DeductionGameService {
       this.elimSig.set(Object.fromEntries(c.people.map((p) => [p.id, new Set<string>()])));
     }
     this.selectedSig.set(null);
+    this.elapsedSig.set(0);
+    this.pausedSig.set(false);
+    this.lastTick = Date.now();
   }
 
   isPlaced = (id: string): boolean => !!this.placeSig()[id];
