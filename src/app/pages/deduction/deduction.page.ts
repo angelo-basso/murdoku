@@ -220,8 +220,8 @@ const TINT: Record<string, string> = {
     .cell.wall-b { border-bottom: 3px solid var(--gold); }
     .cell.blocked { cursor: default; }
     .cell.blocked::after { content: ''; position: absolute; inset: 0; z-index: 2;
-      background: repeating-linear-gradient(45deg, transparent 0 5px, rgba(0,0,0,0.45) 5px 7px), rgba(0,0,0,0.32); }
-    .cell.blocked .furn { opacity: 0.45; filter: grayscale(0.6); }
+      background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,0.38) 6px 8px), rgba(0,0,0,0.12); }
+    .cell.blocked .furn { opacity: 0.8; filter: grayscale(0.35); }
     /* Guidage pendant la sélection */
     .cell.taken::before { content: ''; position: absolute; inset: 0; z-index: 2; background: rgba(8,5,18,0.55); }
     .cell.target::before { content: ''; position: absolute; inset: 2px; z-index: 2; border-radius: 4px;

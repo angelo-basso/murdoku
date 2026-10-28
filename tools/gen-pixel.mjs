@@ -178,49 +178,313 @@ for (const [id, ch] of Object.entries(CHARS)) {
 
 // ================= MEUBLES (24x24, vue de dessus) =================
 const T = 24;
-const WD = '#6b4f3a', WD2 = '#5b4130', WD3 = '#4a3526', OUT = '#2a2033';
-const duvet = { bleu: '#4f78c4', rouge: '#c43f4f', vert: '#3fae6a' };
+const OUT = '#2a2033';
+// Bois
+const W1 = '#8a6440', W2 = '#6b4f3a', W3 = '#4a3526', W4 = '#a87d52';
+// Métal
+const M1 = '#9aa3ad', M2 = '#6b7380', M3 = '#3a4048';
+const duvet = { bleu: ['#4f78c4', '#3a5d9e'], rouge: ['#c43f4f', '#9c2e3c'], vert: ['#3fae6a', '#2e8a52'] };
 
 function tile(draw) { const g = grid(T, T); draw(g); outline(g, OUT); return toSVG(g); }
-const FURN = {
-  'lit:bleu': g => bed(g, 'bleu'), 'lit:rouge': g => bed(g, 'rouge'), 'lit:vert': g => bed(g, 'vert'),
-  chaise: chair, canape: sofa, table: tableF, plante: plant, biblio: shelf, coiffeuse: vanity,
-  fauteuil: armchair, cercueil: coffin, chaudron: cauldron, candelabre: candelabra, tombe: tombstone, toile: cobweb,
-  siege: officeChair, pouf, bureau: desk, imprimante: printer, fontaine: waterCooler, armoire: cabinet,
-  tabouret: stool, banc: bench, machine, caisses: crates, fut: barrel, chariot: forklift,
+const line = (g, x0, y0, x1, y1, c) => {
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) { set(g, x0, y0, c); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
 };
-function bed(g, col) { rect(g, 4, 2, 16, 20, WD2); rect(g, 6, 3, 12, 18, '#efe7d8'); rect(g, 6, 10, 12, 11, duvet[col]); rect(g, 7, 4, 10, 5, '#ffffff'); rect(g, 6, 14, 12, 1, '#0003'); }
-function chair(g) { rect(g, 7, 8, 10, 10, WD); rect(g, 7, 6, 10, 2, WD2); rect(g, 8, 9, 8, 8, '#7d5c42'); }
-function sofa(g) { rect(g, 2, 9, 20, 11, '#6c5ce7'); rect(g, 2, 7, 20, 4, '#7d6cf0'); rect(g, 2, 9, 3, 11, '#5f51cb'); rect(g, 19, 9, 3, 11, '#5f51cb'); rect(g, 6, 12, 5, 6, '#7d6cf0'); rect(g, 13, 12, 5, 6, '#7d6cf0'); }
-function tableF(g) { ell(g, 12, 12, 8, 8, WD); ell(g, 12, 12, 5, 5, '#7d5c42'); }
-function plant(g) { rect(g, 8, 15, 8, 6, '#b4612c'); rect(g, 8, 15, 8, 1, '#c87a3e'); ell(g, 12, 9, 7, 6, '#2f8f4e'); ell(g, 8, 11, 4, 4, '#3aa85e'); ell(g, 16, 11, 4, 4, '#3aa85e'); }
-function shelf(g) { rect(g, 4, 3, 16, 18, WD3); for (const y of [4, 10, 16]) { const cols = ['#c43f4f', '#4f78c4', '#e0a84e', '#3fae6a', '#9b5cd6']; let x = 6; for (const c of cols) { rect(g, x, y, 2, 5, c); x += 3; } } }
-function vanity(g) { rect(g, 5, 13, 14, 8, WD); ell(g, 12, 7, 6, 7, '#9fb6d6'); ell(g, 12, 7, 4, 5, '#cfe0f0'); }
-// --- mobilier hanté ---
-function armchair(g) { rect(g, 5, 8, 14, 13, '#5a2740'); rect(g, 5, 6, 14, 4, '#6e3350'); rect(g, 3, 9, 4, 12, '#4a1f33'); rect(g, 17, 9, 4, 12, '#4a1f33'); rect(g, 8, 11, 8, 7, '#6e3350'); }
-function coffin(g) { for (let y = 2; y < 22; y++) { const w = y < 8 ? 6 + y : 16 - Math.max(0, (y - 14)); rect(g, 12 - Math.floor(w / 2), y, w, 1, '#4a3526'); } rect(g, 9, 6, 6, 9, '#2a1d14'); rect(g, 11, 8, 2, 5, '#c0a24e'); rect(g, 10, 10, 4, 1, '#c0a24e'); }
-function cauldron(g) { ell(g, 12, 13, 8, 7, '#2a2a30'); ell(g, 12, 9, 8, 3, '#1a1a1f'); ell(g, 12, 9, 6, 2, '#5fae5f'); set(g, 9, 6, '#7ec97e'); set(g, 15, 5, '#7ec97e'); rect(g, 6, 19, 12, 2, '#1a1a1f'); }
-function candelabra(g) { rect(g, 11, 8, 2, 12, '#c9a24e'); rect(g, 6, 10, 12, 1, '#c9a24e'); rect(g, 6, 8, 2, 3, '#c9a24e'); rect(g, 16, 8, 2, 3, '#c9a24e'); for (const x of [6, 11, 16]) { rect(g, x, 5, 2, 3, '#efe7d8'); set(g, x, 3, '#f5a623'); set(g, x + 1, 4, '#f5d04e'); } rect(g, 8, 20, 8, 1, '#a07d2e'); }
-function tombstone(g) { for (let y = 5; y < 20; y++) { const w = y < 9 ? 6 + (y - 5) * 2 : 14; rect(g, 12 - Math.floor(w / 2), y, w, 1, '#8d8f98'); } rect(g, 5, 20, 14, 2, '#5a5c64'); rect(g, 9, 11, 1, 4, '#5a5c64'); rect(g, 9, 11, 4, 1, '#5a5c64'); rect(g, 14, 11, 1, 6, '#5a5c64'); }
-function cobweb(g) { for (let i = 0; i < 8; i++) { const a = i * Math.PI / 7; rect(g, 1, 1, Math.round(1 + Math.cos(a) * 18), 1, '#b9b9c4'); } for (let r2 = 4; r2 <= 16; r2 += 4) for (let i = 0; i < 9; i++) { const a = i * Math.PI / 16; set(g, 1 + Math.round(Math.cos(a) * r2), 1 + Math.round(Math.sin(a) * r2), '#9a9aa6'); } }
+const legs = (g, xs, y0, y1, c) => { for (const x of xs) rect(g, x, y0, 1, y1 - y0, c); };
 
-// --- mobilier bureaux ---
-function officeChair(g) { ell(g, 12, 18, 7, 2, '#3a3a44'); for (const x of [5, 12, 19]) set(g, x, 20, '#1a1a22'); rect(g, 11, 14, 2, 4, '#3a3a44'); ell(g, 12, 11, 6, 5, '#2c3e60'); ell(g, 12, 11, 4, 3, '#3a5280'); rect(g, 7, 3, 10, 4, '#22324e'); }
-function pouf(g) { ell(g, 12, 12, 8, 7, '#2a9d8f'); ell(g, 11, 10, 5, 4, '#3cb8a8'); set(g, 12, 12, '#1d6f65'); }
-function desk(g) { rect(g, 2, 5, 20, 14, '#8a6a4a'); rect(g, 2, 17, 20, 2, '#6b4f3a'); rect(g, 8, 6, 8, 6, '#1a1a22'); rect(g, 9, 7, 6, 4, '#4fa3d4'); rect(g, 8, 13, 8, 2, '#cfcfd8'); rect(g, 18, 8, 2, 2, '#f4f4f8'); }
-function printer(g) { rect(g, 4, 8, 16, 11, '#d8d8e0'); rect(g, 6, 4, 12, 5, '#f8f8fc'); rect(g, 4, 17, 16, 2, '#a8a8b4'); rect(g, 15, 10, 3, 2, '#4fd47a'); rect(g, 6, 14, 12, 1, '#666670'); }
-function waterCooler(g) { rect(g, 7, 12, 10, 9, '#e6e6ee'); rect(g, 7, 19, 10, 2, '#b8b8c4'); ell(g, 12, 7, 5, 6, '#5aa9e6'); ell(g, 11, 6, 2, 3, '#9fd2f5'); rect(g, 11, 14, 2, 2, '#4f78c4'); }
-function cabinet(g) { rect(g, 4, 3, 16, 18, '#7d8794'); for (const y of [8, 13]) rect(g, 5, y, 14, 1, '#5a636e'); for (const y of [5, 10, 16]) rect(g, 11, y, 3, 1, '#e6c04a'); }
-// --- mobilier usine ---
-function stool(g) { for (const [x, y] of [[6, 6], [17, 6], [6, 17], [17, 17]]) rect(g, x, y, 2, 2, '#4a3526'); ell(g, 12, 12, 6, 6, '#8a6a4a'); ell(g, 12, 12, 4, 4, '#a07d58'); }
-function bench(g) { rect(g, 2, 7, 20, 10, '#8a6a4a'); for (const y of [9, 12, 15]) rect(g, 2, y, 20, 1, '#6b4f3a'); rect(g, 3, 17, 2, 2, '#4a3526'); rect(g, 19, 17, 2, 2, '#4a3526'); }
-function machine(g) { rect(g, 2, 3, 20, 18, '#6b7380'); rect(g, 4, 5, 8, 6, '#3a4048'); rect(g, 5, 6, 6, 1, '#4fd47a'); ell(g, 17, 8, 3, 3, '#e8e8e8'); rect(g, 17, 6, 1, 3, '#c43f4f'); for (let x = 2; x < 22; x += 4) { rect(g, x, 18, 2, 3, '#f2c230'); rect(g, x + 2, 18, 2, 3, '#1a1a22'); } }
-function crates(g) { const box = (x, y, s, c, d) => { rect(g, x, y, s, s, c); for (let i = 0; i < s; i++) { set(g, x + i, y + i, d); set(g, x + s - 1 - i, y + i, d); } rect(g, x, y, s, 1, d); rect(g, x, y + s - 1, s, 1, d); }; box(2, 10, 11, '#b58a52', '#8a6438'); box(11, 3, 11, '#c49a60', '#946c42'); }
-function barrel(g) { ell(g, 12, 12, 8, 8, '#3f6e8c'); ell(g, 12, 12, 6, 6, '#335a74'); ell(g, 12, 12, 4, 4, '#5a8aa8'); rect(g, 10, 11, 4, 2, '#f2c230'); }
-function forklift(g) { rect(g, 7, 1, 2, 7, '#9a9aa6'); rect(g, 15, 1, 2, 7, '#9a9aa6'); rect(g, 5, 7, 14, 14, '#e0a830'); rect(g, 7, 10, 10, 6, '#333340'); for (const [x, y] of [[4, 8], [18, 8], [4, 18], [18, 18]]) rect(g, x, y, 2, 3, '#1a1a22'); }
+// Chaque clé = un visuel unique, reconnaissable à sa silhouette (les cases bloquées sont grisées).
+const FURN = {
+  // ---------- Où l'on peut se tenir ----------
+  'lit:bleu': (g) => bed(g, 'bleu'), 'lit:rouge': (g) => bed(g, 'rouge'), 'lit:vert': (g) => bed(g, 'vert'),
+  chaise(g) { // chaise à dossier haut à barreaux
+    rect(g, 7, 2, 10, 2, W2); legs(g, [7, 16], 2, 12, W2); for (const x of [9, 11, 13]) rect(g, x, 4, 1, 8, W1);
+    rect(g, 6, 12, 12, 3, W1); rect(g, 6, 14, 12, 1, W3); legs(g, [6, 17], 15, 22, W2); legs(g, [8, 15], 15, 21, W3);
+  },
+  fauteuil(g) { // bergère à oreilles, velours bordeaux
+    ell(g, 12, 7, 8, 6, '#7a2e48'); ell(g, 12, 8, 6, 4, '#933a58');
+    rect(g, 3, 9, 4, 9, '#6a2840'); rect(g, 17, 9, 4, 9, '#6a2840'); ell(g, 5, 9, 2, 2, '#933a58'); ell(g, 19, 9, 2, 2, '#933a58');
+    rect(g, 7, 13, 10, 5, '#a8466a'); rect(g, 3, 18, 18, 2, '#5a2036'); rect(g, 4, 20, 2, 2, W3); rect(g, 18, 20, 2, 2, W3);
+  },
+  canape(g) { // canapé trois places
+    rect(g, 2, 6, 20, 7, '#5d4fc4'); for (const x of [3, 9, 15]) rect(g, x, 7, 6, 5, '#6c5ce7');
+    rect(g, 1, 10, 3, 9, '#4a3fa0'); rect(g, 20, 10, 3, 9, '#4a3fa0');
+    rect(g, 4, 13, 16, 5, '#7d6cf0'); rect(g, 11, 13, 1, 5, '#5d4fc4'); rect(g, 1, 18, 22, 1, '#3a3080'); rect(g, 2, 19, 2, 2, W3); rect(g, 20, 19, 2, 2, W3);
+  },
+  tabouret(g) { // tabouret haut à trois pieds
+    ell(g, 12, 6, 7, 2, '#c08a4e'); rect(g, 5, 7, 15, 1, W2);
+    line(g, 7, 8, 4, 22, W3); line(g, 17, 8, 20, 22, W3); line(g, 12, 8, 12, 21, W2); rect(g, 6, 15, 13, 1, W3);
+  },
+  banc(g) { // banc public : lattes vertes, pieds en fonte
+    for (const y of [5, 8]) rect(g, 1, y, 22, 2, '#3f8a5a'); rect(g, 1, 12, 22, 2, '#4fa06a'); rect(g, 1, 14, 22, 1, '#2e6a44');
+    for (const x of [2, 20]) { rect(g, x, 4, 2, 18, '#22252b'); } rect(g, 1, 21, 4, 1, '#22252b'); rect(g, 19, 21, 4, 1, '#22252b');
+  },
+  pouf(g) { // pouf cylindrique capitonné
+    rect(g, 5, 9, 14, 10, '#2a9d8f'); ell(g, 12, 9, 7, 3, '#3cc8b6'); ell(g, 12, 19, 7, 2, '#1d6f65');
+    for (const x of [8, 12, 16]) set(g, x, 9, '#1d6f65'); for (const x of [7, 11, 15]) rect(g, x, 11, 1, 7, '#24887c');
+  },
+  siege(g) { // chaise de bureau à roulettes
+    rect(g, 8, 1, 8, 9, '#22324e'); rect(g, 9, 2, 6, 7, '#2f4a78'); rect(g, 11, 10, 2, 2, M3);
+    rect(g, 6, 12, 12, 3, '#22324e'); rect(g, 11, 15, 2, 4, M2); line(g, 11, 19, 5, 21, M3); line(g, 12, 19, 18, 21, M3); rect(g, 11, 19, 2, 3, M3);
+    for (const x of [4, 11, 18]) rect(g, x, 21, 2, 2, '#111');
+  },
+  tapis(g) { // tapis d'Orient à franges
+    rect(g, 3, 4, 18, 16, '#9c2e3c'); rect(g, 5, 6, 14, 12, '#c9a24e'); rect(g, 7, 8, 10, 8, '#9c2e3c');
+    ell(g, 12, 12, 3, 2, '#2f4a78'); for (let x = 3; x < 21; x += 2) { set(g, x, 2, '#efe7d8'); set(g, x, 3, '#efe7d8'); set(g, x, 20, '#efe7d8'); set(g, x, 21, '#efe7d8'); }
+  },
+  baignoire(g) { // baignoire sur pieds
+    rect(g, 2, 9, 20, 8, '#f2f2f6'); ell(g, 12, 9, 10, 2, '#cfe6f5'); rect(g, 3, 9, 18, 1, '#9fcbe6');
+    rect(g, 2, 16, 20, 1, '#c8c8d2'); rect(g, 3, 17, 2, 3, '#c9a24e'); rect(g, 19, 17, 2, 3, '#c9a24e');
+    rect(g, 19, 3, 2, 6, M1); rect(g, 16, 3, 4, 2, M1);
+  },
+  transat(g) { // transat rayé
+    line(g, 5, 3, 17, 20, W1); line(g, 6, 3, 18, 20, W1); line(g, 4, 20, 13, 9, W2);
+    for (let i = 0; i < 6; i++) { const y = 4 + i * 2; rect(g, 6 + i * 2 - 1, y, 6, 2, i % 2 ? '#f2f2f6' : '#3a7bd5'); }
+  },
+  rocking(g) { // rocking-chair sur patins courbes
+    rect(g, 8, 2, 9, 2, '#c08a4e'); legs(g, [8, 16], 2, 12, W1); for (const x of [10, 12, 14]) rect(g, x, 4, 1, 8, '#c08a4e');
+    rect(g, 6, 12, 13, 2, '#c08a4e'); legs(g, [7, 17], 14, 19, W2);
+    for (let x = 2; x <= 22; x++) { const y = 20 + Math.round(((x - 12) / 10) ** 2 * -2) + 1; set(g, x, y, W3); set(g, x, y + 1, W3); }
+  },
+  cercueil(g) { // cercueil vu de dessus
+    for (let y = 1; y < 23; y++) { const w = y < 7 ? 6 + y * 2 : Math.max(8, 18 - (y - 7)); rect(g, 12 - Math.floor(w / 2), y, w, 1, '#4a3526'); }
+    for (let y = 3; y < 21; y++) { const w = y < 7 ? 2 + y * 2 - 4 : Math.max(4, 14 - (y - 7)); rect(g, 12 - Math.floor(w / 2), y, w, 1, '#5e4532'); }
+    rect(g, 11, 6, 2, 8, '#c0a24e'); rect(g, 9, 8, 6, 2, '#c0a24e');
+  },
+  paille(g) { // botte de paille ficelée
+    rect(g, 2, 7, 20, 13, '#e0b84e'); rect(g, 2, 7, 20, 2, '#f0d070');
+    for (let i = 0; i < 9; i++) line(g, 3 + i * 2, 10, 4 + i * 2, 19, '#c49a30');
+    rect(g, 7, 7, 1, 13, '#8a5a2a'); rect(g, 16, 7, 1, 13, '#8a5a2a'); set(g, 1, 9, '#f0d070'); set(g, 22, 12, '#f0d070');
+  },
+  priedieu(g) { // prie-Dieu : pupitre + coussin rouge
+    rect(g, 6, 3, 12, 3, W2); line(g, 6, 6, 9, 14, W1); line(g, 17, 6, 14, 14, W1); rect(g, 9, 6, 6, 8, W1);
+    rect(g, 4, 16, 16, 3, '#b0283a'); rect(g, 4, 19, 16, 2, W3); rect(g, 4, 21, 2, 1, W3); rect(g, 18, 21, 2, 1, W3);
+  },
+  trone(g) { // trône doré
+    rect(g, 6, 1, 12, 2, '#e6c04a'); for (const x of [6, 11, 16]) rect(g, x, 0, 2, 1, '#e6c04a');
+    rect(g, 6, 3, 12, 10, '#c9a24e'); rect(g, 8, 4, 8, 9, '#a01e32'); rect(g, 3, 11, 4, 6, '#c9a24e'); rect(g, 17, 11, 4, 6, '#c9a24e');
+    rect(g, 7, 13, 10, 4, '#c0283e'); rect(g, 4, 17, 16, 3, '#a8862e'); rect(g, 5, 20, 2, 3, '#a8862e'); rect(g, 17, 20, 2, 3, '#a8862e');
+  },
+  palette(g) { // palette de manutention (bois clair, lattes espacées)
+    for (const y of [5, 9, 13]) rect(g, 1, y, 22, 2, '#d9b47e');
+    rect(g, 1, 16, 22, 2, '#c49a60'); for (const x of [1, 10, 19]) rect(g, x, 18, 4, 3, '#a07a48'); rect(g, 1, 21, 22, 1, '#c49a60');
+    for (const x of [4, 12, 20]) rect(g, x, 5, 1, 11, '#b08a58');
+  },
 
+  // ---------- Objets qui bloquent la case ----------
+  table(g) { // table ronde vue de dessus, couverts dressés
+    ell(g, 12, 12, 10, 10, W1); ell(g, 12, 12, 8, 8, W4); ell(g, 12, 12, 2, 2, '#e6c04a');
+    for (const [x, y] of [[12, 5], [12, 19], [5, 12], [19, 12]]) { ell(g, x, y, 2, 2, '#f6f6f6'); set(g, x, y, '#d8d0c0'); }
+  },
+
+  plante(g) { // plante verte en pot de terre cuite
+    rect(g, 7, 15, 10, 7, '#b4612c'); rect(g, 6, 15, 12, 2, '#c87a3e');
+    ell(g, 12, 8, 4, 7, '#2f8f4e'); ell(g, 6, 10, 4, 3, '#3aa85e'); ell(g, 18, 10, 4, 3, '#3aa85e'); ell(g, 9, 4, 2, 3, '#4cc070'); ell(g, 16, 5, 2, 3, '#4cc070');
+  },
+  biblio(g) { // bibliothèque garnie
+    rect(g, 3, 1, 18, 22, W3); for (const y of [3, 10, 17]) { const cols = ['#c43f4f', '#4f78c4', '#e0a84e', '#3fae6a', '#9b5cd6', '#e6e6e6']; let x = 5; for (const c of cols) { rect(g, x, y + (x % 3 === 0 ? 1 : 0), 2, 5 - (x % 3 === 0 ? 1 : 0), c); x += 2 + (x % 2); if (x > 18) break; } rect(g, 4, y + 5, 16, 1, W2); }
+  },
+  coiffeuse(g) { // commode basse à tiroirs + petit miroir rond + flacons
+    ell(g, 12, 6, 5, 5, '#c9a24e'); ell(g, 12, 6, 4, 4, '#bcd6ec'); set(g, 10, 4, '#fff');
+    rect(g, 3, 12, 18, 9, W1); rect(g, 3, 12, 18, 1, W4); for (const y of [14, 17]) { rect(g, 4, y, 16, 2, W2); rect(g, 11, y, 2, 1, '#e6c04a'); }
+    rect(g, 4, 10, 2, 2, '#e07ab0'); rect(g, 18, 9, 2, 3, '#7ab0e0'); rect(g, 4, 21, 2, 2, W3); rect(g, 18, 21, 2, 2, W3);
+  },
+  armoire(g) { // grande armoire à deux portes, corniche
+    rect(g, 3, 1, 18, 2, W3); rect(g, 4, 3, 16, 18, W2); rect(g, 5, 4, 7, 16, W1); rect(g, 12, 4, 7, 16, W1);
+    rect(g, 6, 6, 5, 5, W4); rect(g, 13, 6, 5, 5, W4); rect(g, 11, 12, 1, 2, '#e6c04a'); rect(g, 13, 12, 1, 2, '#e6c04a'); rect(g, 4, 21, 2, 2, W3); rect(g, 18, 21, 2, 2, W3);
+  },
+  fourneau(g) { // cuisinière en fonte, feux et four
+    rect(g, 2, 7, 20, 15, '#2a2a30'); rect(g, 2, 5, 20, 3, M2); for (const x of [6, 17]) { ell(g, x, 6, 3, 1, '#111'); set(g, x, 6, '#e05a2a'); }
+    rect(g, 5, 11, 14, 8, '#3a3a44'); rect(g, 7, 13, 10, 4, '#e0a050'); rect(g, 5, 10, 14, 1, M1); rect(g, 18, 1, 2, 4, M2);
+  },
+  evier(g) { // évier en inox sur meuble bas, robinet
+    rect(g, 2, 9, 20, 13, W1); rect(g, 3, 13, 8, 8, W2); rect(g, 13, 13, 8, 8, W2); rect(g, 9, 16, 1, 2, '#e6c04a'); rect(g, 14, 16, 1, 2, '#e6c04a');
+    rect(g, 1, 8, 22, 4, M1); rect(g, 5, 9, 12, 2, '#5a8aa8'); rect(g, 10, 3, 2, 6, M2); rect(g, 10, 3, 5, 2, M2); rect(g, 14, 5, 1, 2, '#9fd2f5');
+  },
+  cheminee(g) { // cheminée en pierre avec feu
+    rect(g, 1, 3, 22, 3, '#b8b0a8'); rect(g, 2, 6, 20, 17, '#8d8580'); for (const [x, y] of [[3, 8], [17, 10], [4, 18], [18, 19]]) rect(g, x, y, 3, 2, '#9d958f');
+    rect(g, 6, 9, 12, 14, '#1a1414'); ell(g, 12, 19, 4, 4, '#e05a2a'); ell(g, 12, 20, 2, 3, '#f5c04e'); set(g, 10, 15, '#f5a623'); set(g, 14, 16, '#f5a623');
+  },
+  piano(g) { // piano droit noir, clavier blanc
+    rect(g, 2, 2, 20, 12, '#1e1e24'); rect(g, 3, 3, 18, 2, '#33333d'); rect(g, 1, 13, 22, 4, '#1e1e24');
+    rect(g, 2, 13, 20, 2, '#f6f6f6'); for (let x = 3; x < 22; x += 2) set(g, x, 13, '#1e1e24'); legs(g, [3, 20], 17, 23, '#1e1e24'); rect(g, 10, 7, 4, 3, '#c9a24e');
+  },
+  billard(g) { // billard vu de dessus
+    rect(g, 1, 3, 22, 18, '#6b3e22'); rect(g, 3, 5, 18, 14, '#1f8a4c');
+    for (const [x, y] of [[2, 4], [11, 4], [20, 4], [2, 19], [11, 19], [20, 19]]) rect(g, x, y, 2, 1, '#111');
+    set(g, 8, 10, '#f6f6f6'); set(g, 14, 9, '#e0c030'); set(g, 15, 12, '#c43f4f'); set(g, 13, 12, '#111'); line(g, 4, 15, 9, 11, '#e6c88a');
+  },
+  horloge(g) { // horloge comtoise
+    rect(g, 7, 1, 10, 2, W3); rect(g, 7, 3, 10, 9, W2); ell(g, 12, 7, 4, 4, '#f2ece0'); line(g, 12, 7, 12, 4, '#222'); line(g, 12, 7, 14, 8, '#222');
+    rect(g, 8, 12, 8, 9, W1); rect(g, 10, 13, 4, 7, '#2a2020'); rect(g, 11, 13, 1, 4, '#c9a24e'); ell(g, 11, 18, 1, 1, '#e6c04a'); rect(g, 6, 21, 12, 2, W3);
+  },
+  globe(g) { // globe terrestre sur pied
+    ell(g, 12, 9, 7, 7, '#3a7bd5'); ell(g, 10, 7, 3, 2, '#3fae6a'); ell(g, 15, 11, 2, 3, '#3fae6a'); set(g, 8, 11, '#3fae6a');
+    for (let a = -2; a <= 10; a++) { const t = (a / 8) * Math.PI; set(g, 12 + Math.round(Math.cos(t + 2.4) * 9), 9 + Math.round(Math.sin(t + 2.4) * 9), '#c9a24e'); }
+    rect(g, 11, 16, 2, 4, W2); rect(g, 7, 20, 10, 2, W3);
+  },
+  malle(g) { // malle au trésor bombée
+    ell(g, 12, 9, 10, 4, '#7a4a26'); rect(g, 2, 9, 20, 12, '#8a5a2e'); rect(g, 2, 12, 20, 1, '#5a3a1a');
+    for (const x of [5, 18]) rect(g, x, 5, 2, 16, M2); rect(g, 10, 11, 4, 4, '#e6c04a'); set(g, 11, 13, '#333');
+  },
+  casiervin(g) { // casier à bouteilles : culots de bouteilles dans un cadre
+    rect(g, 2, 2, 20, 20, W2); rect(g, 3, 3, 18, 18, W3);
+    for (const y of [6, 12, 18]) for (const x of [6, 12, 18]) { ell(g, x, y, 2, 2, (x + y) % 12 ? '#2a5a2a' : '#6a1a2a'); set(g, x - 1, y - 1, '#9fd09f'); }
+  },
+
+  lavabo(g) { // lavabo sur colonne
+    ell(g, 12, 9, 9, 3, '#f2f2f6'); rect(g, 3, 9, 18, 3, '#f2f2f6'); ell(g, 12, 9, 6, 1, '#9fcbe6');
+    rect(g, 10, 12, 4, 9, '#e0e0e8'); rect(g, 7, 21, 10, 2, '#c8c8d2'); rect(g, 11, 3, 2, 5, M1); rect(g, 9, 3, 6, 1, M1);
+  },
+  chevalet(g) { // chevalet de peintre avec toile
+    line(g, 12, 1, 4, 23, W1); line(g, 12, 1, 20, 23, W1); line(g, 12, 1, 12, 23, W2);
+    rect(g, 5, 4, 14, 11, '#f6f0e4'); ell(g, 9, 9, 3, 3, '#e0a84e'); rect(g, 12, 7, 5, 6, '#4f78c4'); set(g, 8, 12, '#c43f4f'); rect(g, 4, 15, 16, 1, W2);
+  },
+  etabli(g) { // établi : plateau épais, étau, outils
+    rect(g, 1, 10, 22, 4, W4); rect(g, 1, 13, 22, 1, W2); legs(g, [2, 3, 20, 21], 14, 23, W2); rect(g, 2, 19, 20, 1, W2);
+    rect(g, 17, 6, 5, 4, M2); rect(g, 19, 4, 1, 2, M3); rect(g, 4, 7, 7, 2, M1); rect(g, 10, 6, 2, 4, W3); rect(g, 4, 2, 1, 6, M3);
+  },
+  statue(g) { // buste sur colonne de marbre
+    ell(g, 12, 5, 4, 4, '#e6e2dc'); rect(g, 7, 9, 10, 3, '#d8d4ce'); rect(g, 8, 12, 8, 1, '#b8b0a8');
+    rect(g, 8, 13, 8, 8, '#d0ccc6'); for (const x of [9, 12, 14]) rect(g, x, 13, 1, 8, '#b8b0a8'); rect(g, 6, 21, 12, 2, '#a8a29c');
+  },
+  autel(g) { // autel : nappe blanche, croix, cierges
+    rect(g, 11, 1, 2, 8, '#e6c04a'); rect(g, 8, 3, 8, 2, '#e6c04a'); for (const x of [4, 19]) { rect(g, x, 5, 1, 4, '#f6f0e4'); set(g, x, 4, '#f5a623'); }
+    rect(g, 2, 9, 20, 13, '#8d8580'); rect(g, 2, 9, 20, 5, '#f6f6f6'); rect(g, 10, 9, 4, 8, '#b0283a');
+  },
+  chaudron(g) { // chaudron bouillonnant sur pieds
+    ell(g, 12, 13, 9, 7, '#2a2a30'); ell(g, 12, 8, 9, 3, '#1a1a1f'); ell(g, 12, 8, 7, 2, '#5fae5f');
+    ell(g, 9, 4, 1, 1, '#7ec97e'); ell(g, 15, 2, 1, 1, '#7ec97e'); set(g, 12, 5, '#9fe09f'); legs(g, [6, 17], 19, 23, '#1a1a1f');
+  },
+  candelabre(g) { // candélabre à trois branches
+    rect(g, 11, 8, 2, 12, '#c9a24e'); rect(g, 5, 11, 14, 1, '#c9a24e'); legs(g, [5, 18], 8, 12, '#c9a24e');
+    for (const x of [5, 11, 18]) { rect(g, x, 4, x === 11 ? 2 : 1, 4, '#efe7d8'); set(g, x, 2, '#f5a623'); set(g, x, 3, '#f5d04e'); }
+    rect(g, 7, 20, 10, 2, '#a07d2e');
+  },
+  tombe(g) { // pierre tombale arrondie avec croix
+    ell(g, 12, 8, 7, 6, '#8d8f98'); rect(g, 5, 8, 15, 12, '#8d8f98'); rect(g, 11, 6, 2, 9, '#5a5c64'); rect(g, 8, 8, 8, 2, '#5a5c64');
+    rect(g, 2, 20, 20, 3, '#4a6a3a'); set(g, 4, 19, '#5a8a4a'); set(g, 19, 19, '#5a8a4a');
+  },
+  toile(g) { // toile d'araignée + araignée
+    for (let i = 0; i <= 6; i++) { const a = (i / 6) * (Math.PI / 2); line(g, 0, 0, Math.round(Math.cos(a) * 22), Math.round(Math.sin(a) * 22), '#c9c9d4'); }
+    for (const r2 of [6, 11, 16, 21]) for (let i = 0; i <= 12; i++) { const a = (i / 12) * (Math.PI / 2); set(g, Math.round(Math.cos(a) * r2), Math.round(Math.sin(a) * r2), '#9a9aa6'); }
+    ell(g, 14, 14, 2, 2, '#1a1a1f'); for (const [dx, dy] of [[-3, -2], [3, -2], [-3, 2], [3, 2]]) line(g, 14, 14, 14 + dx, 14 + dy, '#1a1a1f');
+  },
+  ossements(g) { // tas de crânes et d'os
+    line(g, 2, 20, 21, 14, '#e8e2d0'); line(g, 3, 14, 20, 21, '#d8d0bc'); ell(g, 2, 20, 1, 1, '#e8e2d0'); ell(g, 21, 14, 1, 1, '#e8e2d0');
+    for (const [x, y] of [[7, 14], [16, 15], [12, 8]]) { ell(g, x, y, 4, 4, '#efe9d8'); rect(g, x - 2, y + 3, 5, 2, '#e0d8c4'); set(g, x - 2, y, '#222'); set(g, x + 1, y, '#222'); set(g, x - 1, y + 2, '#555'); }
+  },
+  miroir(g) { // psyché : grand miroir sur pied, cadre doré
+    rect(g, 6, 1, 12, 18, '#c9a24e'); rect(g, 7, 2, 10, 16, '#a8d4ec'); line(g, 9, 4, 13, 8, '#eaf6fc'); line(g, 9, 6, 11, 8, '#eaf6fc');
+    rect(g, 11, 19, 2, 2, '#a8862e'); line(g, 11, 21, 6, 23, '#a8862e'); line(g, 12, 21, 17, 23, '#a8862e');
+  },
+  carnivore(g) { // plante carnivore aux mâchoires rouges
+    rect(g, 8, 17, 8, 6, '#5a2a6a'); rect(g, 7, 17, 10, 1, '#6e3a80'); rect(g, 11, 10, 2, 7, '#3a8a3a');
+    ell(g, 12, 7, 8, 4, '#c43f4f'); rect(g, 4, 7, 17, 1, '#2a0a10'); for (let x = 5; x < 20; x += 2) { set(g, x, 6, '#f6f6f6'); set(g, x + 1, 8, '#f6f6f6'); }
+    ell(g, 6, 15, 3, 1, '#3aa85e'); ell(g, 18, 14, 3, 1, '#3aa85e');
+  },
+  telescope(g) { // lunette astronomique en laiton sur trépied
+    line(g, 3, 13, 19, 3, '#c9a24e'); line(g, 3, 14, 19, 4, '#c9a24e'); line(g, 4, 15, 20, 5, '#a8862e'); rect(g, 18, 2, 3, 4, '#8a6a2a');
+    line(g, 12, 10, 6, 23, W2); line(g, 12, 10, 18, 23, W2); line(g, 12, 10, 12, 23, W3);
+  },
+  bureau(g) { // bureau avec écran et clavier
+    rect(g, 7, 2, 10, 8, '#1a1a22'); rect(g, 8, 3, 8, 6, '#4fa3d4'); rect(g, 11, 10, 2, 2, M3);
+    rect(g, 1, 12, 22, 3, '#8a6a4a'); rect(g, 7, 12, 10, 1, '#cfcfd8'); rect(g, 2, 15, 6, 8, '#6b4f3a'); rect(g, 3, 17, 4, 1, '#cfcfd8'); rect(g, 20, 15, 2, 8, '#6b4f3a');
+  },
+  imprimante(g) { // imprimante, feuille qui sort
+    rect(g, 8, 2, 8, 6, '#f8f8fc'); rect(g, 9, 4, 6, 1, '#999'); rect(g, 3, 8, 18, 10, '#d8d8e0'); rect(g, 3, 8, 18, 2, '#ececf2');
+    rect(g, 6, 13, 12, 2, '#555560'); rect(g, 16, 10, 3, 1, '#4fd47a'); rect(g, 3, 18, 18, 3, '#a8a8b4');
+  },
+  fontaine(g) { // fontaine à eau, bonbonne bleue
+    ell(g, 12, 5, 5, 5, '#5aa9e6'); ell(g, 11, 4, 2, 2, '#9fd2f5'); rect(g, 10, 9, 4, 2, '#3a7bd5');
+    rect(g, 7, 11, 10, 11, '#e6e6ee'); rect(g, 9, 14, 2, 2, '#4f78c4'); rect(g, 13, 14, 2, 2, '#c43f4f'); rect(g, 8, 17, 8, 1, '#b8b8c4');
+  },
+  classeur(g) { // classeur métallique à 4 tiroirs
+    rect(g, 5, 1, 14, 22, '#7d8794'); for (const y of [2, 7, 12, 17]) { rect(g, 6, y, 12, 4, '#949eab'); rect(g, 10, y + 1, 4, 1, '#f2f2f2'); rect(g, 10, y + 3, 4, 1, '#3a4048'); }
+  },
+  coffre(g) { // coffre-fort vert, cadran
+    rect(g, 3, 3, 18, 18, '#2e4a3a'); rect(g, 5, 5, 14, 14, '#3a5e48'); ell(g, 11, 12, 4, 4, '#c9c9d4'); ell(g, 11, 12, 2, 2, '#6b7380');
+    set(g, 11, 9, '#222'); rect(g, 16, 10, 2, 5, '#c9c9d4'); rect(g, 4, 21, 3, 2, '#1a2a20'); rect(g, 17, 21, 3, 2, '#1a2a20');
+  },
+  serveur(g) { // baie de serveurs, voyants
+    rect(g, 5, 0, 14, 24, '#16161c'); for (let y = 2; y < 22; y += 3) { rect(g, 6, y, 12, 2, '#2a2a34'); set(g, 7, y, '#4fd47a'); set(g, 9, y, y % 2 ? '#4fa3d4' : '#4fd47a'); set(g, 16, y + 1, '#e0a830'); }
+  },
+  distributeur(g) { // distributeur de friandises rouge, vitre
+    rect(g, 4, 0, 16, 24, '#c0283e'); rect(g, 6, 2, 9, 16, '#bcd6ec');
+    for (let y = 3; y < 17; y += 4) for (let x = 7; x < 14; x += 3) rect(g, x, y, 2, 2, ['#e0a830', '#3fae6a', '#6c5ce7', '#f6f6f6'][(x + y) % 4]);
+    rect(g, 16, 4, 3, 6, '#2a2a34'); rect(g, 6, 20, 9, 2, '#1a1a22');
+  },
+  comptoir(g) { // comptoir d'accueil + sonnette
+    rect(g, 1, 10, 22, 12, '#3a4a6a'); rect(g, 1, 8, 22, 3, '#d9c4a0'); rect(g, 3, 13, 18, 2, '#e6c04a');
+    ell(g, 17, 6, 2, 1, '#c9a24e'); set(g, 17, 4, '#c9a24e'); rect(g, 4, 5, 5, 3, '#f6f6f6');
+  },
+  tableau(g) { // tableau blanc sur pied, griffonné
+    rect(g, 2, 2, 20, 13, '#f6f6fa'); rect(g, 2, 2, 20, 1, M1); rect(g, 2, 14, 20, 1, M1);
+    line(g, 4, 6, 9, 5, '#c43f4f'); line(g, 4, 9, 12, 9, '#3a7bd5'); line(g, 14, 11, 19, 5, '#3fae6a');
+    line(g, 6, 15, 3, 23, M2); line(g, 17, 15, 20, 23, M2); rect(g, 4, 15, 16, 1, M2);
+  },
+  babyfoot(g) { // baby-foot vu de dessus
+    rect(g, 2, 2, 20, 20, '#4a3526'); rect(g, 4, 4, 16, 16, '#3aa85e'); rect(g, 4, 11, 16, 1, '#f6f6f6');
+    for (const [y, c] of [[6, '#c43f4f'], [9, '#3a7bd5'], [14, '#c43f4f'], [17, '#3a7bd5']]) { rect(g, 0, y, 24, 1, M1); for (const x of [8, 12, 16]) set(g, x, y, c); }
+  },
+  parasol(g) { // parasol rayé rouge et blanc
+    for (let y = 1; y < 9; y++) { const w = 4 + y * 2.4 | 0; for (let x = 12 - (w >> 1); x <= 12 + (w >> 1); x++) set(g, x, y, Math.floor((x + 24) / 4) % 2 ? '#c43f4f' : '#f6f6f6'); }
+    rect(g, 11, 9, 2, 12, '#d0d0d8'); rect(g, 7, 21, 10, 2, '#555560');
+  },
+  machine(g) { // machine-outil (tour) jaune et grise
+    rect(g, 1, 6, 22, 9, '#e0b030'); rect(g, 3, 8, 6, 5, M3); rect(g, 4, 9, 4, 1, '#4fd47a'); rect(g, 10, 9, 10, 2, M1); ell(g, 11, 10, 2, 3, M2);
+    rect(g, 18, 3, 3, 4, '#c43f4f'); rect(g, 2, 15, 20, 2, M3); legs(g, [3, 4, 19, 20], 17, 23, M2);
+  },
+  caisses(g) { // caisses en bois empilées, entretoises en X
+    const box = (x, y, s) => { rect(g, x, y, s, s, '#c49a60'); rect(g, x, y, s, 1, '#8a6438'); rect(g, x, y + s - 1, s, 1, '#8a6438'); rect(g, x, y, 1, s, '#8a6438'); rect(g, x + s - 1, y, 1, s, '#8a6438'); line(g, x, y, x + s - 1, y + s - 1, '#8a6438'); line(g, x + s - 1, y, x, y + s - 1, '#8a6438'); };
+    box(1, 12, 11); box(12, 12, 11); box(6, 1, 11);
+  },
+  fut(g) { // fût métallique bleu, cerclages, pictogramme
+    rect(g, 5, 2, 14, 20, '#2f5e8c'); ell(g, 12, 2, 7, 1, '#4a7aa8'); for (const y of [7, 16]) rect(g, 5, y, 14, 1, '#1f3e5c');
+    for (let i = 0; i < 4; i++) rect(g, 11 - i, 9 + i, 2 + i * 2, 1, '#f2c230'); set(g, 12, 10, '#111'); set(g, 12, 11, '#111');
+  },
+  chariot(g) { // chariot élévateur de profil
+    rect(g, 3, 1, 2, 18, M2); rect(g, 0, 17, 5, 2, M3); rect(g, 6, 9, 13, 9, '#e0a830'); rect(g, 9, 3, 1, 7, M3); rect(g, 17, 3, 1, 7, M3); rect(g, 9, 3, 9, 1, M3);
+    rect(g, 11, 6, 4, 3, '#2a2a34'); ell(g, 9, 19, 3, 3, '#1a1a22'); ell(g, 17, 19, 3, 3, '#1a1a22'); set(g, 9, 19, M1); set(g, 17, 19, M1);
+  },
+  chaudiere(g) { // chaudière : cuve cuivrée, tuyaux, manomètre
+    rect(g, 5, 3, 14, 18, '#b0602a'); ell(g, 12, 3, 7, 2, '#c8783a'); ell(g, 12, 21, 7, 1, '#8a4a20'); for (const y of [7, 15]) rect(g, 5, y, 14, 1, '#8a4a20');
+    ell(g, 12, 11, 3, 3, '#f2f2f2'); line(g, 12, 11, 14, 9, '#c43f4f'); rect(g, 19, 6, 4, 2, M2); rect(g, 21, 0, 2, 6, M2); rect(g, 0, 15, 5, 2, M2);
+  },
+  casier(g) { // vestiaire : trois casiers à aérations
+    for (const [i, c] of [[0, '#3a7bd5'], [1, '#2f68b8'], [2, '#3a7bd5']]) { const x = 2 + i * 7; rect(g, x, 1, 6, 22, c); for (const y of [3, 5, 7]) rect(g, x + 1, y, 4, 1, '#1f3e6a'); rect(g, x + 4, 11, 1, 3, '#d0d0d8'); }
+  },
+  paillasse(g) { // paillasse de laboratoire : verrerie colorée
+    rect(g, 1, 13, 22, 3, '#f2f2f6'); rect(g, 2, 16, 20, 7, '#9aa3ad'); rect(g, 11, 17, 2, 5, '#6b7380');
+    rect(g, 4, 5, 2, 4, '#cfe6f5'); ell(g, 5, 10, 3, 2, '#5fd07a'); rect(g, 10, 4, 3, 9, '#cfe6f5'); rect(g, 10, 8, 3, 5, '#e05a8a');
+    for (const x of [16, 18, 20]) rect(g, x, 6, 1, 7, '#cfe6f5'); set(g, 16, 11, '#f2c230'); set(g, 18, 10, '#4fa3d4'); set(g, 20, 12, '#c43f4f'); rect(g, 15, 12, 7, 1, M2);
+  },
+  four(g) { // four de fonderie en dôme, cheminée métallique
+    rect(g, 15, 0, 3, 6, M3); ell(g, 12, 13, 10, 9, '#8a3a2a'); rect(g, 2, 13, 20, 9, '#8a3a2a'); rect(g, 1, 21, 22, 2, '#5a2a1a');
+    for (const [x, y] of [[5, 9], [14, 7], [4, 17], [17, 16], [9, 5]]) rect(g, x, y, 3, 2, '#a04a36');
+    rect(g, 8, 14, 8, 7, '#1a0a08'); rect(g, 9, 16, 6, 5, '#f07a2a'); rect(g, 10, 18, 4, 3, '#ffd060');
+  },
+
+  enclume(g) { // enclume sur billot
+    rect(g, 4, 6, 15, 4, '#4a4e58'); rect(g, 1, 7, 4, 2, '#4a4e58'); rect(g, 8, 10, 7, 3, '#3a3e48'); rect(g, 6, 13, 11, 2, '#4a4e58'); rect(g, 4, 6, 15, 1, '#7a808c');
+    rect(g, 5, 15, 13, 8, '#8a5a2e'); for (const x of [8, 13]) rect(g, x, 15, 1, 8, '#6a4220');
+  },
+  transfo(g) { // transformateur : armoire grise, danger électrique
+    rect(g, 3, 2, 18, 20, '#8d969f'); for (const x of [5, 18]) rect(g, x, 4, 1, 16, '#6b7380');
+    for (let i = 0; i < 9; i++) rect(g, 12 - i, 6 + i, 1 + i * 2, 1, '#f2c230'); line(g, 13, 8, 11, 11, '#111'); line(g, 11, 11, 13, 11, '#111'); line(g, 13, 11, 11, 14, '#111'); rect(g, 3, 22, 18, 1, '#555560');
+  },
+};
+function bed(g, col) {
+  const [c1, c2] = duvet[col];
+  rect(g, 3, 1, 18, 4, W2); rect(g, 3, 1, 18, 1, W4); rect(g, 4, 5, 16, 16, '#efe7d8'); rect(g, 5, 5, 6, 4, '#ffffff'); rect(g, 13, 5, 6, 4, '#ffffff');
+  rect(g, 4, 10, 16, 11, c1); rect(g, 4, 10, 16, 1, c2); rect(g, 4, 15, 16, 1, c2); rect(g, 3, 21, 18, 2, W2);
+}
+
+// Planche contact (vérification visuelle) et fichiers individuels
+mkdirSync(ROOT + '.tmp', { recursive: true });
 for (const [key, draw] of Object.entries(FURN)) {
   writeFileSync(ROOT + `src/assets/furniture/${key.replace(':', '-')}.svg`, tile(draw));
 }
+writeFileSync(ROOT + '.tmp/furniture-keys.json', JSON.stringify(Object.keys(FURN)));
 
 console.log('Assets pixel générés : ' + Object.keys(CHARS).length + ' personnages, ' + Object.keys(FURN).length + ' meubles.');
