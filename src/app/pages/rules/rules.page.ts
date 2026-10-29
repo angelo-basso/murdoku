@@ -33,7 +33,7 @@ import { AudioService } from '../../core/services/audio.service';
             <li><p>Chaque affaire s'ouvre quand la précédente est résolue.</p></li>
             <li><p>Une difficulté s'ouvre après <b>5 affaires</b> résolues dans la précédente.</p></li>
             <li><p>Selon ta rapidité, une affaire rapporte de 1 à <b>3 étoiles</b>.</p></li>
-            <li><p>Chaque enquête coûte <b>1 ⚡ énergie</b>. Elle se recharge seule jusqu'à 5 (1 toutes les 10 minutes), et des victoires en offrent parfois.</p></li>
+            <li><p>Chaque enquête coûte <b>1 ⚡ énergie</b>. Elle se recharge seule jusqu'à 10 (1 toutes les 10 minutes), et des victoires en offrent parfois.</p></li>
             <li><p>Tu commences avec <b>3 indices</b>. La boutique échange tes étoiles contre des indices, des loupes et des cadres.</p></li>
             <li><p>Termine les 20 affaires d'une difficulté pour ouvrir les <b>affaires sur mesure</b>.</p></li>
           </ul>

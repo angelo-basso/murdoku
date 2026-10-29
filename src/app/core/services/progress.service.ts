@@ -47,7 +47,7 @@ export const LEVELS_PER_DIFFICULTY = 20;
 export const LEVELS_TO_UNLOCK_NEXT = 5;
 export const START_HINTS = 3;
 /** Énergie : plafond de la recharge automatique (on peut le dépasser via bonus et boutique). */
-export const ENERGY_MAX = 5;
+export const ENERGY_MAX = 10;
 export const ENERGY_REGEN_MS = 10 * 60_000;
 /** Chance de gagner 1 énergie à chaque victoire. */
 export const ENERGY_LUCK = 0.25;

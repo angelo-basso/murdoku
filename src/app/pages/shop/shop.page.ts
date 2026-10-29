@@ -25,7 +25,7 @@ import { ProgressService, SHOP, ShopItem, formatTime } from '../../core/services
             @if (progress.energyNextMs()) { <small>(+1 dans {{ fmt(progress.energyNextMs()) }})</small> }
             · 💡 {{ progress.inventory().hints }} indice{{ progress.inventory().hints > 1 ? 's' : '' }}
             · 🔍 {{ progress.inventory().loupes }} loupe{{ progress.inventory().loupes > 1 ? 's' : '' }}</p>
-          <p class="mk-muted">Chaque affaire rapporte jusqu'à 3 étoiles selon ta rapidité. Chaque enquête coûte 1 ⚡ ; l'énergie se recharge seule jusqu'à 5, à raison de 1 toutes les 10 minutes.</p>
+          <p class="mk-muted">Chaque affaire rapporte jusqu'à 3 étoiles selon ta rapidité. Chaque enquête coûte 1 ⚡ ; l'énergie se recharge seule jusqu'à 10, à raison de 1 toutes les 10 minutes.</p>
         </section>
 
         <section class="mk-card">
