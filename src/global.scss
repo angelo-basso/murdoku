@@ -52,3 +52,18 @@ body.reduce-motion .confetti { display: none !important; }
 .mk-chip small { display: block; font-size: .68rem; opacity: .75; }
 .mk-chip[aria-pressed="true"], .mk-chip[aria-selected="true"] { background: var(--ion-color-primary); color: var(--ion-color-primary-contrast); border-color: var(--ion-color-primary); font-weight: 700; }
 .mk-chip:disabled { opacity: .4; border-style: dashed; }
+
+/* Boîtes de dialogue (confirmation d'achat…) aux couleurs du jeu, lisibles en thème sombre */
+ion-alert {
+  --background: #241c42;
+  --max-width: 320px;
+  --backdrop-opacity: .6;
+}
+ion-alert .alert-wrapper { background: #241c42 !important; border: 1px solid rgba(212, 175, 55, .45); border-radius: 16px !important; }
+ion-alert .alert-head, ion-alert .alert-message, ion-alert .alert-button-group, ion-alert .alert-button { background: transparent !important; }
+ion-alert .alert-title { color: #f3d57a !important; font: 600 1.15rem Georgia, serif !important; }
+ion-alert .alert-message { color: #e9e2fb !important; font-size: .95rem !important; line-height: 1.45; }
+ion-alert .alert-button-group { border-top: 1px solid #ffffff1c; }
+ion-alert .alert-button { color: #d4af37 !important; border-color: #ffffff1c !important; }
+ion-alert .alert-button.alert-button-role-cancel { color: #b9b0d6 !important; font-weight: 500 !important; }
+ion-alert .alert-button:not(.alert-button-role-cancel) { font-weight: 700 !important; }
