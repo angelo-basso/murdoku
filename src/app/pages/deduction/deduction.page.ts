@@ -5,17 +5,17 @@ import {
   IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar, NavController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { arrowBack, bulbOutline, refreshOutline, listOutline, createOutline, shareSocialOutline, pauseOutline, playOutline, timeOutline } from 'ionicons/icons';
+import { arrowBack, bulbOutline, refreshOutline, listOutline, createOutline, searchOutline, shareSocialOutline, pauseOutline, playOutline, timeOutline } from 'ionicons/icons';
 import { findDeductionCase } from '../../core/data/deduction-cases';
 import { FURNITURE, furnName } from '../../core/data/deduction-themes';
 import { AnnouncerService } from '../../core/services/announcer.service';
 import { AudioService, MusicId } from '../../core/services/audio.service';
 import { FeedbackService } from '../../core/services/feedback.service';
-import { Clue, DeductionCase, LevelDef } from '../../core/models/deduction.models';
+import { Clue, DeductionCase, Difficulty, LevelDef } from '../../core/models/deduction.models';
 import { DeductionGameService } from '../../core/services/deduction-game.service';
 import { DeductionGeneratorService } from '../../core/services/deduction-generator.service';
 import { DeductionSolverService } from '../../core/services/deduction-solver.service';
-import { ProgressService, caseFingerprint, formatTime } from '../../core/services/progress.service';
+import { ProgressService, STAR_TIMES, caseFingerprint, formatTime, starsFor } from '../../core/services/progress.service';
 
 interface CellVm {
   r: number; col: number;
@@ -61,6 +61,11 @@ const TINT: Record<string, string> = {
         <div class="infobar">
           <span class="chip">{{ titleSub() }}{{ titleSub() ? ' · ' : '' }}{{ c.n }}×{{ c.n }}</span>
           <span class="timer" [attr.aria-label]="'Temps écoulé ' + time()" role="timer"><ion-icon name="time-outline"></ion-icon>{{ time() }}</span>
+          @if (rated()) {
+            <span class="stars-live" [attr.aria-label]="liveStars() + ' étoiles possibles' + (nextDrop() ? ', une de moins après ' + nextDrop() : '')">
+              @for (i of [1, 2, 3]; track i) { <span [class.off]="i > liveStars()">★</span> }
+            </span>
+          }
           <span class="progress">
             <span class="bar"><span class="fill" [style.width.%]="placedCount() / c.people.length * 100"></span></span>
             {{ placedCount() }}/{{ c.people.length }} placés
@@ -69,14 +74,14 @@ const TINT: Record<string, string> = {
 
         <!-- Plateau -->
         <h2 class="sr-only">Plateau</h2>
-        <div class="board" [style.--n]="c.n" [class.selecting]="!!game.selected() && !game.notesMode()"
+        <div class="board" [style.--n]="c.n" [style.--gold]="progress.frameColor()" [class.selecting]="!!game.selected() && !game.notesMode()"
           role="group" [attr.aria-label]="'Plateau de ' + c.n + ' lignes et ' + c.n + ' colonnes. Flèches du clavier pour se déplacer.'"
           (keydown)="onBoardKey($event)">
           @for (cell of cells(); track cell.r + '-' + cell.col) {
             <button type="button" class="cell"
               [class.blocked]="cell.blocked" [class.conflict]="cell.conflict"
               [class.wall-r]="cell.wallR" [class.wall-b]="cell.wallB"
-              [class.target]="cell.target" [class.taken]="cell.taken"
+              [class.target]="cell.target" [class.taken]="cell.taken" [class.flagged]="!!cell.occupant && flagged().has(cell.occupant)"
               [attr.data-r]="cell.r" [attr.data-c]="cell.col"
               [attr.aria-label]="cellLabel(cell)" [attr.tabindex]="cell.r === focusR() && cell.col === focusC() ? 0 : -1"
               (focus)="focusR.set(cell.r); focusC.set(cell.col)"
@@ -97,6 +102,9 @@ const TINT: Record<string, string> = {
           }
         </div>
 
+        @if (shopNudge()) {
+          <p class="nudge" role="alert">{{ shopNudge() }} <button type="button" (click)="openShop()">Boutique</button></p>
+        }
         <!-- Aide contextuelle -->
         <p class="status" [class.warn]="statusWarn()">
           {{ status() }}
@@ -122,8 +130,15 @@ const TINT: Record<string, string> = {
           <button type="button" class="ctrl" [class.active]="game.notesMode()" [attr.aria-pressed]="game.notesMode()" (click)="toggleNotes()">
             <ion-icon name="create-outline"></ion-icon><span>Rature</span>
           </button>
-          <button type="button" class="ctrl" (click)="onHint()" aria-label="Indice : place correctement une personne">
+          <button type="button" class="ctrl" (click)="onHint()"
+            [attr.aria-label]="'Indice : place correctement une personne. ' + (tutorial ? 'Gratuit dans l’initiation.' : progress.inventory().hints + ' restant' + (progress.inventory().hints > 1 ? 's' : '') + '.')">
             <ion-icon name="bulb-outline"></ion-icon><span>Indice</span>
+            <b class="badge" aria-hidden="true">{{ tutorial ? '∞' : progress.inventory().hints }}</b>
+          </button>
+          <button type="button" class="ctrl" (click)="onLoupe()"
+            [attr.aria-label]="'Loupe : signale les personnes mal placées. ' + (tutorial ? 'Gratuite dans l’initiation.' : progress.inventory().loupes + ' restante' + (progress.inventory().loupes > 1 ? 's' : '') + '.')">
+            <ion-icon name="search-outline"></ion-icon><span>Loupe</span>
+            <b class="badge" aria-hidden="true">{{ tutorial ? '∞' : progress.inventory().loupes }}</b>
           </button>
           <button type="button" class="ctrl" (click)="showClues = !showClues" [attr.aria-expanded]="showClues">
             <ion-icon name="list-outline"></ion-icon><span>{{ showClues ? 'Masquer' : 'Indices' }}</span>
@@ -197,10 +212,16 @@ const TINT: Record<string, string> = {
             <img class="culprit" [src]="avatar(culprit.id)" alt="" />
             <h2 id="reveal-title" tabindex="-1" class="dlg-focus">Le coupable&nbsp;: {{ culprit.name }}</h2>
             <p>Seul suspect dans la pièce de la victime : c'est le meurtrier.</p>
+            @if (result(); as res) {
+              <p class="stars-big" [attr.aria-label]="res.stars + ' étoile' + (res.stars > 1 ? 's' : '') + ' sur 3'">
+                @for (i of [1, 2, 3]; track i) { <span [class.off]="i > res.stars" [style.animation-delay.s]="i * 0.18">★</span> }
+              </p>
+              @if (res.gained) { <p class="gain">+{{ res.gained }} étoile{{ res.gained > 1 ? 's' : '' }} · solde {{ progress.balance() }} ★</p> }
+            }
             <p class="ptime">⏱ {{ time() }}@if (bestTime()) { <small> · record {{ bestTime() }}</small> }</p>
             <div class="acts">
               @if (nextLevel(); as nx) {
-                <ion-button expand="block" (click)="openLevel(nx.id)">Niveau suivant ({{ nx.index }}/20)</ion-button>
+                <ion-button expand="block" (click)="openLevel(nx.id)">Affaire suivante ({{ nx.index }}/20)</ion-button>
               }
               <ion-button expand="block" [fill]="nextLevel() ? 'outline' : 'solid'" (click)="goHome()">{{ level ? 'Retour aux affaires' : 'Retour' }}</ion-button>
               <ion-button expand="block" fill="clear" (click)="resetAll()">Rejouer</ion-button>
@@ -289,6 +310,20 @@ const TINT: Record<string, string> = {
       min-height: 52px; border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; background: #ffffff06;
       color: var(--ion-text-color); font-size: 0.75rem; }
     .ctrl ion-icon { font-size: 1.3rem; }
+    .ctrl { position: relative; }
+    .badge { position: absolute; top: 4px; right: 6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+      background: var(--gold); color: #1a1426; font-size: .68rem; line-height: 18px; text-align: center; }
+    .stars-live { color: var(--gold); letter-spacing: 1px; font-size: 13px; }
+    .stars-live .off, .stars-big .off { color: #ffffff26; }
+    .stars-big { margin: 2px 0 0; font-size: 2.1rem; color: #f3d57a; letter-spacing: 6px; }
+    .stars-big span { display: inline-block; animation: starpop .45s cubic-bezier(.3,1.6,.6,1) both; }
+    @keyframes starpop { from { transform: scale(0); opacity: 0; } }
+    .gain { margin: 0 0 4px; color: #2dd36f; font-weight: 700; font-size: .9rem; }
+    .cell.flagged::after { content: ''; position: absolute; inset: 1px; z-index: 4; border-radius: 4px; pointer-events: none;
+      box-shadow: inset 0 0 0 3px #eb445a; animation: glow 0.8s ease-in-out infinite; }
+    .nudge { max-width: 420px; margin: 0 auto 8px; text-align: center; color: #f3d57a; font-size: 12.5px; }
+    .nudge button { margin-left: 6px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #d4af3722;
+      color: var(--gold); font-weight: 700; font-size: .8rem; }
     .ctrl.active { background: var(--gold); color: var(--ion-color-primary-contrast); border-color: var(--gold); }
 
     .clues-title { max-width: 420px; margin: 0 auto 6px; font: 600 14px Georgia, serif; color: var(--gold); }
@@ -362,7 +397,7 @@ export class DeductionPage implements OnInit, OnDestroy {
   private gen = inject(DeductionGeneratorService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private progress = inject(ProgressService);
+  readonly progress = inject(ProgressService);
   private feedback = inject(FeedbackService);
   private announcer = inject(AnnouncerService);
   private audio = inject(AudioService);
@@ -370,6 +405,13 @@ export class DeductionPage implements OnInit, OnDestroy {
   private music: MusicId = 'manoir';
 
   showClues = true;
+  /** Affaire d'initiation : indices et loupes gratuits, pas de note. */
+  tutorial = false;
+  private difficulty: Difficulty = 'facile';
+  readonly result = signal<{ stars: number; gained: number } | null>(null);
+  readonly flagged = signal<Set<string>>(new Set());
+  readonly shopNudge = signal('');
+  private recorded: string | null = null;
   /** Case qui reçoit le focus clavier (navigation aux flèches). */
   readonly focusR = signal(0);
   readonly focusC = signal(0);
@@ -398,7 +440,7 @@ export class DeductionPage implements OnInit, OnDestroy {
   }));
 
   constructor() {
-    addIcons({ arrowBack, refreshOutline, bulbOutline, listOutline, createOutline, shareSocialOutline, pauseOutline, playOutline, timeOutline });
+    addIcons({ arrowBack, refreshOutline, bulbOutline, listOutline, createOutline, searchOutline, shareSocialOutline, pauseOutline, playOutline, timeOutline });
 
     // Son, vibration et annonces vocales à chaque coup.
     let prev: Record<string, [number, number] | null> = {};
@@ -432,16 +474,18 @@ export class DeductionPage implements OnInit, OnDestroy {
       if (n !== lastElim && !this.loading()) this.feedback.emit('note');
       lastElim = n;
     });
-    let recorded: string | null = null;
     effect(() => {
       const c = this.game.currentCase();
       const culprit = this.game.culprit();
-      if (!culprit || !c || recorded === c.id) return;
-      recorded = c.id;
+      if (!culprit || !c || this.recorded === c.id) return;
+      this.recorded = c.id;
       this.feedback.emit('win');
       const ms = untracked(() => this.game.elapsed());
-      this.announcer.alert(`Affaire résolue ! Le coupable est ${culprit.name}. Temps : ${formatTime(ms)}.`);
-      this.progress.recordWin(c.id, ms, !!this.level);
+      const kind = this.level ? 'level' : this.tutorial ? 'tutorial' : 'custom';
+      const res = this.progress.recordWin(c.id, ms, kind, this.difficulty);
+      this.result.set(kind === 'tutorial' ? null : res);
+      this.announcer.alert(`Affaire résolue ! Le coupable est ${culprit.name}. Temps : ${formatTime(ms)}.`
+        + (kind !== 'tutorial' ? ` ${res.stars} étoile${res.stars > 1 ? 's' : ''} sur 3${res.gained ? `, ${res.gained} gagnée${res.gained > 1 ? 's' : ''}` : ''}.` : ''));
       setTimeout(() => (document.querySelector('#reveal-title') as HTMLElement | null)?.focus(), 300);
     }, { allowSignalWrites: true });
 
@@ -562,6 +606,13 @@ export class DeductionPage implements OnInit, OnDestroy {
     }
 
     if (!c) { this.loading.set(false); this.error.set('Affaire introuvable.'); return; }
+    if (this.level && !this.progress.levelUnlocked(this.level.id)) {
+      this.loading.set(false);
+      this.error.set('Affaire verrouillée : résous d\'abord l\'affaire précédente.');
+      return;
+    }
+    this.tutorial = !this.level && !code;
+    this.difficulty = this.level?.difficulty ?? (code ? this.gen.parseCode(code)?.difficulty : undefined) ?? 'facile';
     this.music = (this.level?.theme ?? (code ? this.gen.parseCode(code)?.themeId : 'manoir') ?? 'manoir') as MusicId;
     this.audio.playMusic(this.music);
     let saved = this.progress.getSave(c.id);
@@ -847,7 +898,44 @@ export class DeductionPage implements OnInit, OnDestroy {
     const sel = this.game.selected();
     if (sel) { this.game.removePerson(sel); this.game.selectPerson(sel); }
   }
-  onHint(): void { this.feedback.emit('hint'); this.game.hint(); }
+  onHint(): void {
+    if (!this.tutorial && this.progress.inventory().hints <= 0) { this.nudge('Plus d\'indice en réserve.'); return; }
+    if (!this.game.hint()) { this.announcer.say('Tout le monde est déjà bien placé.'); return; }
+    if (!this.tutorial) this.progress.use('hints');
+    this.feedback.emit('hint');
+    this.shopNudge.set('');
+  }
+
+  /** Loupe : entoure en rouge les personnes mal placées pendant quelques secondes. */
+  onLoupe(): void {
+    if (!this.tutorial && this.progress.inventory().loupes <= 0) { this.nudge('Plus de loupe en réserve.'); return; }
+    const c = this.game.currentCase();
+    if (!c || !this.placedCount()) { this.announcer.say('Pose d\'abord des personnes à vérifier.'); return; }
+    if (!this.tutorial) this.progress.use('loupes');
+    const wrong = this.game.wrongPlaced();
+    this.flagged.set(new Set(wrong));
+    setTimeout(() => this.flagged.set(new Set()), 3500);
+    const names = wrong.map((id) => c.people.find((p) => p.id === id)!.name);
+    this.feedback.emit(wrong.length ? 'error' : 'hint');
+    this.announcer.say(wrong.length ? `Loupe : mal placé${wrong.length > 1 ? 's' : ''} : ${names.join(', ')}.` : 'Loupe : toutes les personnes posées sont bien placées.');
+    this.shopNudge.set('');
+  }
+
+  private nudge(msg: string): void {
+    this.feedback.emit('error');
+    this.shopNudge.set(`${msg} Gagne des étoiles en résolvant des affaires, puis échange-les.`);
+    this.announcer.say(this.shopNudge());
+  }
+
+  openShop(): void { this.pause(); void this.router.navigate(['/boutique']); }
+
+  /** Étoiles encore possibles au temps actuel, et prochain palier. */
+  rated(): boolean { return !this.tutorial; }
+  readonly liveStars = computed(() => starsFor(this.difficulty, this.game.elapsed()));
+  readonly nextDrop = computed(() => {
+    const t = STAR_TIMES[this.difficulty], n = this.liveStars();
+    return n === 3 ? formatTime(t.three * 60000) : n === 2 ? formatTime(t.two * 60000) : '';
+  });
   toggleStrike(i: number): void {
     const s = new Set(this.struck());
     if (s.has(i)) s.delete(i); else s.add(i);
@@ -855,6 +943,8 @@ export class DeductionPage implements OnInit, OnDestroy {
   }
   resetAll(): void {
     this.game.reset();
+    this.recorded = null;
+    this.result.set(null);
     this.struck.set(new Set());
     const c = this.game.currentCase();
     if (c) this.progress.clearSave(c.id);

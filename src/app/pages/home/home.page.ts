@@ -2,7 +2,7 @@ import { Component, OnInit, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonContent, IonIcon, ViewDidEnter } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { bookOutline, chevronForward, diceOutline, lockClosed, play, searchOutline, settingsOutline } from 'ionicons/icons';
+import { bookOutline, cartOutline, chevronForward, diceOutline, lockClosed, play, searchOutline, settingsOutline } from 'ionicons/icons';
 import { DIFFICULTIES } from '../../core/engine/generator';
 import { AudioService } from '../../core/services/audio.service';
 import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/services/progress.service';
@@ -18,6 +18,9 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
         <h1 class="sr-only">Murdoku, Sudoku d'enquête</h1>
         <img class="logo" src="assets/brand/logo.svg" alt="" />
         <p class="tagline">Placez les suspects d'après les indices et démasquez le coupable.</p>
+        <p class="wallet" [attr.aria-label]="progress.balance() + ' étoiles, ' + progress.inventory().hints + ' indices, ' + progress.inventory().loupes + ' loupes'">
+          <span>★ {{ progress.balance() }}</span><span>💡 {{ progress.inventory().hints }}</span><span>🔍 {{ progress.inventory().loupes }}</span>
+        </p>
 
         @if (progress.lastSave(); as last) {
           <button type="button" class="resume" (click)="router.navigate(last.route)">
@@ -29,7 +32,7 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
         <nav class="menu" aria-label="Menu principal">
           <button type="button" class="entry" (click)="router.navigate(['/classique'])">
             <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
-            <span class="txt"><b>Affaires classiques</b><small>{{ totalDone() }}/{{ total }} résolues · 5 difficultés</small></span>
+            <span class="txt"><b>Affaires classiques</b><small>{{ totalDone() }}/{{ total }} résolues · {{ progress.earned() }} ★ gagnées</small></span>
             <ion-icon class="go" name="chevron-forward" aria-hidden="true"></ion-icon>
           </button>
 
@@ -41,6 +44,12 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
               <small>{{ customUnlocked() ? 'Générateur infini et codes partagés' : 'Termine les ' + perDiff + ' affaires d\\'une difficulté pour débloquer' }}</small>
             </span>
             @if (customUnlocked()) { <ion-icon class="go" name="chevron-forward" aria-hidden="true"></ion-icon> }
+          </button>
+
+          <button type="button" class="entry" (click)="router.navigate(['/boutique'])">
+            <ion-icon name="cart-outline" aria-hidden="true"></ion-icon>
+            <span class="txt"><b>Boutique</b><small>Échange tes étoiles : indices, loupes, cadres</small></span>
+            <ion-icon class="go" name="chevron-forward" aria-hidden="true"></ion-icon>
           </button>
 
           <button type="button" class="entry" (click)="router.navigate(['/regles'])">
@@ -70,6 +79,7 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
     .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
     .txt b { font: 600 1.05rem Georgia, serif; }
     .txt small { color: #b9b0d6; font-size: .8rem; line-height: 1.3; }
+    .wallet { display: flex; justify-content: center; gap: 16px; margin: -8px 0 16px; color: #f3d57a; font-weight: 700; font-size: .95rem; }
     .menu { display: flex; flex-direction: column; gap: 10px; }
     .entry { min-height: 72px; background: var(--ion-card-background); border: 1px solid #ffffff14; }
     .entry:active { transform: scale(.98); }
@@ -94,7 +104,7 @@ export class HomePage implements OnInit, ViewDidEnter {
   });
 
   constructor() {
-    addIcons({ bookOutline, chevronForward, diceOutline, lockClosed, play, searchOutline, settingsOutline });
+    addIcons({ bookOutline, cartOutline, chevronForward, diceOutline, lockClosed, play, searchOutline, settingsOutline });
   }
 
   async ngOnInit(): Promise<void> { await this.progress.load(); }

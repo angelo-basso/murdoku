@@ -191,10 +191,17 @@ export class DeductionGameService {
     return c.people.find((p) => p.id === id) ?? null;
   });
 
-  /** Indice : place correctement une personne encore mal placée. */
-  hint(): void {
+  /** Loupe : personnes posées au mauvais endroit (sans révéler la bonne case). */
+  wrongPlaced(): string[] {
+    const sol = this.solutionCache, place = this.placeSig();
+    if (!sol) return [];
+    return Object.entries(place).filter(([id, p]) => p && (sol[id]![0] !== p[0] || sol[id]![1] !== p[1])).map(([id]) => id);
+  }
+
+  /** Indice : place correctement une personne encore mal placée ; false si tout est déjà juste. */
+  hint(): boolean {
     const c = this.caseSig();
-    if (!c || !this.solutionCache) return;
+    if (!c || !this.solutionCache) return false;
     const sol = this.solutionCache;
     const place = { ...this.placeSig() };
     for (const p of c.people) {
@@ -207,8 +214,9 @@ export class DeductionGameService {
         place[p.id] = [want[0], want[1]];
         this.placeSig.set(place);
         this.selectedSig.set(null);
-        return;
+        return true;
       }
     }
+    return false;
   }
 }
