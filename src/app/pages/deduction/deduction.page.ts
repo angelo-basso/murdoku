@@ -120,6 +120,7 @@ const TINT: Record<string, string> = {
               [attr.aria-pressed]="p.selected" [attr.aria-label]="p.label">
               <img [src]="p.avatar" alt="" draggable="false" />
               <span>{{ p.short }}</span>
+              @if (p.victim) { <i class="skull" aria-hidden="true">💀</i> }
               @if (p.placed) { <i class="check" aria-hidden="true">✓</i> }
             </button>
           }
@@ -301,7 +302,9 @@ const TINT: Record<string, string> = {
       box-shadow: 0 0 0 2px #d4af3755; }
     .person.placed { opacity: .45; }
     .person.placed.sel { opacity: 1; }
-    .person.victim { border-color: #eb445a99; }
+    .person.victim { border-color: #eb445a; background: #eb445a1c; }
+    .person.victim img, .token.victim { filter: grayscale(.75) brightness(.9) drop-shadow(0 0 2px #eb445a); }
+    .skull { position: absolute; top: 2px; left: 4px; font-style: normal; font-size: 11px; }
     .check { position: absolute; top: 3px; right: 4px; font-style: normal; font-size: 10px;
       color: #2dd36f; font-weight: 700; }
 

@@ -29,6 +29,11 @@ const inb = (g, x, y) => y >= 0 && y < g.length && x >= 0 && x < g[0].length;
 const set = (g, x, y, c) => { if (inb(g, x, y) && c) g[y][x] = c; };
 const rect = (g, x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) set(g, x + i, y + j, c); };
 const ell = (g, cx, cy, rx, ry, c, pred) => { for (let y = 0; y < g.length; y++) for (let x = 0; x < g[0].length; x++) { const dx = (x - cx) / rx, dy = (y - cy) / ry; if (dx * dx + dy * dy <= 1 && (!pred || pred(x, y))) set(g, x, y, c); } };
+const line = (g, x0, y0, x1, y1, c) => {
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) { set(g, x0, y0, c); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+};
 function outline(g, c) {
   const o = grid(g[0].length, g.length);
   for (let y = 0; y < g.length; y++) for (let x = 0; x < g[0].length; x++) {
@@ -167,11 +172,180 @@ const CHARS = {
   stagiaire: { skin: ['#f2c9a0', '#d8a47a'], outfit: ['#4fa3d4', '#3a82b0'], hair: g => capBack(g, '#6b4a2e', '#c43f4f') },
   vigile: { skin: ['#9a6a48', '#7a5034'], outfit: ['#1f2a44', '#141c30'], hair: g => secCap(g, '#1a1420'), acc: g => { rect(g, cx + 5, 37, 3, 3, '#e6c04a'); } },
 };
+// ================= DISTRIBUTION : 30 personnages par décor =================
+// Briques supplémentaires pour varier les silhouettes.
+const SK = {
+  a: ['#f6d3b3', '#dfae8a'], b: ['#f2c79c', '#d99f73'], c: ['#e3b483', '#c08a5c'],
+  d: ['#c98e5f', '#a8703f'], e: ['#9a6a48', '#7a5034'], f: ['#6e4630', '#55341f'],
+};
+const curly = (g, c, c2) => { ell(g, cx, cy - 3, rx + 3, ry - 1, c, (x, y) => y < cy - 1 || x < cx - rx + 1 || x > cx + rx - 2); for (let x = cx - rx - 1; x <= cx + rx + 1; x += 3) set(g, x, cy - ry - 1, c2); for (let x = cx - rx; x <= cx + rx; x += 3) set(g, x, cy - ry + 2, c2); };
+const afro = (g, c, c2) => { ell(g, cx, cy - 4, rx + 5, ry + 1, c, (x, y) => y < cy - 1 || x < cx - rx + 1 || x > cx + rx - 2); ell(g, cx - 3, cy - ry - 1, 3, 2, c2); };
+const mohawk = (g, c) => { rect(g, cx - 2, cy - ry - 4, 4, 8, c); rect(g, cx - rx, cy - 4, 1, 5, c); rect(g, cx + rx - 1, cy - 4, 1, 5, c); };
+const spiky = (g, c, c2) => { hairShort(g, c, c2); for (let x = cx - rx + 1; x < cx + rx; x += 3) { set(g, x, cy - ry - 1, c); set(g, x + 1, cy - ry - 2, c); } };
+const braids = (g, c, c2) => { hairShort(g, c, c2); for (const x of [cx - rx - 1, cx + rx - 1]) for (let y = cy; y < cy + ry + 6; y += 2) { rect(g, x, y, 2, 1, c); rect(g, x, y + 1, 2, 1, c2); } };
+const pigtails = (g, c, c2) => { hairShort(g, c, c2); ell(g, cx - rx - 2, cy - 2, 2, 4, c); ell(g, cx + rx + 1, cy - 2, 2, 4, c); };
+const bald = (g, c) => { rect(g, cx - rx, cy - 3, 2, 5, c); rect(g, cx + rx - 1, cy - 3, 2, 5, c); set(g, cx - 3, cy - ry + 2, '#ffffff66'); };
+const tophat = (g, col) => { rect(g, cx - rx - 3, cy - ry + 1, 2 * rx + 7, 2, col); rect(g, cx - rx + 2, cy - ry - 9, 2 * rx - 3, 10, col); rect(g, cx - rx + 2, cy - ry - 1, 2 * rx - 3, 2, '#c43f4f'); };
+const bowler = (g, col) => { ell(g, cx, cy - ry + 1, rx + 1, 4, col, (x, y) => y < cy - ry + 2); rect(g, cx - rx - 2, cy - ry + 1, 2 * rx + 5, 2, col); };
+const beanie = (g, col, col2) => { ell(g, cx, cy - ry + 3, rx + 1, 6, col, (x, y) => y < cy - ry + 4); rect(g, cx - rx - 1, cy - ry + 2, 2 * rx + 3, 3, col2); ell(g, cx, cy - ry - 3, 2, 2, col2); };
+const headscarf = (g, col, col2) => { ell(g, cx, cy - 2, rx + 2, ry + 1, col, (x, y) => y < cy - 3 || ((x < cx - rx + 1 || x > cx + rx - 2) && y < cy + 4)); for (let x = cx - rx; x < cx + rx; x += 3) set(g, x, cy - ry + 1, col2); rect(g, cx + rx, cy + 2, 3, 4, col); };
+const policeCap = (g, hair, col) => { hairShort(g, hair, hair); rect(g, cx - rx - 1, cy - ry - 1, 2 * rx + 3, 4, col); rect(g, cx - rx, cy - ry + 3, 2 * rx + 1, 2, '#111'); rect(g, cx - 1, cy - ry, 3, 2, '#e6c04a'); };
+const nurseCap = (g, hair) => { bun(g, hair, hair); rect(g, cx - 5, cy - ry - 2, 11, 3, '#ffffff'); rect(g, cx - 1, cy - ry - 2, 2, 3, '#e04050'); rect(g, cx - 2, cy - ry - 1, 4, 1, '#e04050'); };
+const crown = (g, hair) => { hairShort(g, hair, hair); rect(g, cx - 6, cy - ry - 2, 13, 3, '#e6c04a'); for (const x of [cx - 6, cx, cx + 6]) rect(g, x, cy - ry - 5, 1, 3, '#e6c04a'); set(g, cx, cy - ry - 1, '#c43f4f'); };
+const tiara = (g) => { rect(g, cx - 4, cy - ry, 9, 1, '#d9dde6'); set(g, cx, cy - ry - 1, '#8fd3ff'); set(g, cx, cy - ry - 2, '#d9dde6'); };
+const horns = (g, col) => { for (let i = 0; i < 5; i++) { rect(g, cx - rx + 1 - Math.floor(i / 2), cy - ry - i, 2, 1, col); rect(g, cx + rx - 2 + Math.floor(i / 2), cy - ry - i, 2, 1, col); } };
+const knightHelm = (g) => { ell(g, cx, cy - 1, rx + 1, ry + 1, '#9aa3ad', (x, y) => y < cy + 7); rect(g, cx - rx, cy - 1, 2 * rx + 1, 2, '#2a2a30'); rect(g, cx - 1, cy + 1, 2, 6, '#6b7380'); rect(g, cx - 1, cy - ry - 4, 2, 4, '#c43f4f'); };
+const pirateHat = (g) => { ell(g, cx, cy - ry + 1, rx + 5, 3, '#1a1420', (x, y) => y <= cy - ry + 1); ell(g, cx, cy - ry - 1, rx, 4, '#1a1420'); rect(g, cx - 1, cy - ry - 2, 3, 2, '#f6f0ea'); };
+const wizardHat = (g, col) => { for (let i = 0; i < 15; i++) { const w = Math.max(1, Math.round((15 - i) * 0.8)); rect(g, cx - Math.floor(w / 2) - Math.round(i / 6), cy - ry - 1 - i, w, 1, col); } ell(g, cx, cy - ry + 1, rx + 4, 2, col); set(g, cx + 1, cy - ry - 5, '#f5d04e'); set(g, cx - 2, cy - ry - 9, '#f5d04e'); };
+const headphones = (g, hair, col) => { hairShort(g, hair, hair); for (let x = cx - rx - 1; x <= cx + rx + 1; x++) set(g, x, cy - ry - 1 + Math.round(((x - cx) / rx) ** 2 * 3), col); rect(g, cx - rx - 2, cy - 2, 3, 6, col); rect(g, cx + rx, cy - 2, 3, 6, col); };
+const bandana = (g, hair, col) => { hairShort(g, hair, hair); rect(g, cx - rx, cy - ry + 1, 2 * rx + 1, 3, col); rect(g, cx + rx, cy - ry + 3, 3, 2, col); set(g, cx - 3, cy - ry + 2, '#f6f6f6'); set(g, cx + 3, cy - ry + 2, '#f6f6f6'); };
+const hood = (g, col, col2) => { ell(g, cx, cy, rx + 3, ry + 3, col, (x, y) => y < cy - 4 || x < cx - rx + 1 || x > cx + rx - 2); ell(g, cx, cy - 1, rx + 3, ry + 3, col2, (x, y) => x > cx + rx); };
+const batEars = (g, col) => { for (let i = 0; i < 6; i++) { rect(g, cx - rx + 1, cy - ry - i, 4 - Math.floor(i / 2), 1, col); rect(g, cx + rx - 4 + Math.floor(i / 2), cy - ry - i, 4 - Math.floor(i / 2), 1, col); } };
+const goggles = (g) => { rect(g, cx - rx, cy - ry + 3, 2 * rx + 1, 1, '#3a3a44'); ell(g, cx - 4, cy - ry + 3, 2, 2, '#5aa9e6'); ell(g, cx + 4, cy - ry + 3, 2, 2, '#5aa9e6'); };
+const beard = (g, c) => { ell(g, cx, cy + 6, rx - 1, 5, c, (x, y) => y > cy + 2); rect(g, cx - 2, 25, 5, 1, C.mouth); };
+const goatee = (g, c) => { rect(g, cx - 1, 27, 3, 3, c); rect(g, cx - 3, 24, 7, 1, c); };
+const sunglasses = (g) => { rect(g, cx - 7, 18, 6, 3, '#111'); rect(g, cx + 1, 18, 6, 3, '#111'); rect(g, cx - 1, 18, 2, 1, '#111'); set(g, cx - 6, 18, '#5a5a6a'); };
+const monocle = (g) => { for (const [x, y] of [[cx + 2, 18], [cx + 6, 18], [cx + 2, 21], [cx + 6, 21]]) set(g, x, y, '#e6c04a'); rect(g, cx + 3, 17, 3, 1, '#e6c04a'); rect(g, cx + 3, 22, 3, 1, '#e6c04a'); rect(g, cx + 7, 22, 1, 8, '#e6c04a'); };
+const eyepatch = (g) => { rect(g, cx - 7, 18, 5, 4, '#111'); line(g, cx - rx, cy - 6, cx + rx, cy - 3, '#111'); };
+const bowtie = (g, col) => { rect(g, cx - 4, 33, 3, 3, col); rect(g, cx + 2, 33, 3, 3, col); rect(g, cx - 1, 34, 3, 1, col); };
+const scarf = (g, col) => { rect(g, cx - 7, 31, 15, 3, col); rect(g, cx + 3, 34, 3, 7, col); };
+const necklace = (g, col) => { for (let x = cx - 5; x <= cx + 5; x++) set(g, x, 33 + Math.round(((x - cx) / 5) ** 2 * -2) + 2, col); };
+const stetho = (g) => { line(g, cx - 5, 33, cx - 3, 40, '#3a3a44'); line(g, cx + 5, 33, cx + 3, 40, '#3a3a44'); ell(g, cx, 41, 2, 1, '#9aa3ad'); };
+const apron = (g, col) => { rect(g, cx - 6, 34, 13, 12, col); rect(g, cx - 4, 32, 9, 2, col); };
+const collar = (g) => { rect(g, cx - 5, 32, 4, 2, '#f6f6f6'); rect(g, cx + 2, 32, 4, 2, '#f6f6f6'); };
+const badge = (g, col) => rect(g, cx + 6, 37, 3, 3, col);
+const lanyard = (g, col) => { line(g, cx - 4, 32, cx, 39, col); line(g, cx + 4, 32, cx, 39, col); rect(g, cx - 1, 39, 3, 4, '#f6f6f6'); };
+const bolts = (g) => { rect(g, cx - rx - 2, cy + 6, 2, 2, '#9aa3ad'); rect(g, cx + rx, cy + 6, 2, 2, '#9aa3ad'); };
+const scar = (g) => { line(g, cx + 3, 14, cx + 6, 24, '#8a3a3a'); for (const y of [16, 19, 22]) set(g, cx + 3 + Math.round((y - 14) * 0.3) + 1, y, '#8a3a3a'); };
+const freckles = (g) => { for (const [x, y] of [[cx - 6, 22], [cx - 4, 23], [cx + 4, 22], [cx + 6, 23]]) set(g, x, y, '#b0703a'); };
+const blush = (g) => { rect(g, cx - 7, 22, 2, 1, '#e88a8a'); rect(g, cx + 6, 22, 2, 1, '#e88a8a'); };
+const pearls = (g) => { for (let x = cx - 6; x <= cx + 6; x += 2) set(g, x, 32 + (Math.abs(x - cx) < 4 ? 1 : 0), '#f6f6f6'); };
+const pumpkinFace = (g) => {
+  ell(g, cx, cy + 1, rx + 3, ry, '#e8782a'); for (const dx of [-5, 0, 5]) rect(g, cx + dx, cy - ry + 3, 1, 2 * ry - 4, '#c45e18');
+  rect(g, cx - 1, cy - ry - 3, 3, 4, '#3a7a2a');
+  for (const ex of [cx - 5, cx + 3]) { set(g, ex, 18, '#2a1408'); rect(g, ex - 1, 19, 3, 1, '#2a1408'); }
+  rect(g, cx - 5, 25, 11, 2, '#2a1408'); set(g, cx - 3, 25, '#e8782a'); set(g, cx + 2, 26, '#e8782a');
+};
+const cyclopsFace = (skin) => (g) => {
+  charBase(g, skin[0], skin[1]); ell(g, cx, 19, 4, 3, C.white); ell(g, cx, 19, 2, 2, '#6a2a8a'); set(g, cx, 19, '#111');
+  rect(g, cx - 4, 15, 9, 1, '#3a2a20'); rect(g, cx - 3, 25, 7, 1, C.mouth); set(g, cx - 2, 26, '#fff'); set(g, cx + 2, 26, '#fff');
+  hairShort(g, '#3a2a20', '#4a3a2a');
+};
+const all = (...fs) => (g) => fs.forEach((f) => f(g));
+const P = (skin, outfit, hair, acc, extra = {}) => ({ skin: SK[skin] ?? skin, outfit, hair, acc, ...extra });
+
+const CAST = {
+  // ---------- Le manoir (22 nouveaux + 8 existants) ----------
+  majordome: P('b', ['#1a1a24', '#0e0e16'], (g) => receding(g, '#c8c8d2'), all((g) => mustache(g, '#c8c8d2'), (g) => bowtie(g, '#1a1a24'), collar)),
+  comtesse: P('a', ['#6a2a8a', '#4a1a66'], (g) => { bun(g, '#c8a060', '#e0c080'); tiara(g); }, all(pearls, lips, earrings)),
+  colonel: P('c', ['#5a6a3a', '#3e4a28'], (g) => policeCap(g, '#d0d0d8', '#5a6a3a'), all((g) => mustache(g, '#e0e0e8'), (g) => badge(g, '#e6c04a'))),
+  baronne: P('b', ['#2a6a6a', '#1a4a4a'], (g) => { hairLong(g, '#2a1a14', '#3a2a20'); bowler(g, '#2a6a6a'); }, all(lips, (g) => necklace(g, '#e6c04a'))),
+  pianiste: P('d', ['#1a1a24', '#0e0e16'], (g) => curly(g, '#1a1410', '#2a2018'), all((g) => bowtie(g, '#c43f4f'), collar)),
+  poete: P('a', ['#4a3a6a', '#342850'], (g) => hairLong(g, '#5a3a22', '#6b4a2e'), all((g) => scarf(g, '#c43f4f'), (g) => goatee(g, '#5a3a22'))),
+  chauffeur: P('c', ['#2a3a5a', '#1a2a44'], (g) => cap(g, '#3a2a20', '#2a3a5a'), all(glasses, collar)),
+  heritier: P('a', ['#e8e0c8', '#c8c0a8'], (g) => spiky(g, '#e0c060', '#f0d880'), all((g) => bowtie(g, '#3a7bd5'), freckles)),
+  veuve: P('b', ['#141418', '#0a0a0e'], (g) => { hairLong(g, '#141018', '#201826'); hood(g, '#141418', '#0a0a0e'); }, all(lips, pearls)),
+  antiquaire: P('d', ['#8a5a2e', '#6a4220'], (g) => bald(g, '#c8c8d2'), all(monocle, (g) => beard(g, '#c8c8d2'))),
+  sommelier: P('c', ['#5a1a2a', '#3e0e1a'], (g) => hairShort(g, '#1a1410', '#2a2018'), all((g) => apron(g, '#2a2a30'), (g) => mustache(g, '#1a1410'))),
+  cartomancienne: P('d', ['#7a2a6a', '#5a1a4e'], (g) => headscarf(g, '#c43f4f', '#e6c04a'), all(earrings, (g) => necklace(g, '#e6c04a'), lips)),
+  photographe: P('b', ['#3a5a3a', '#2a442a'], (g) => beanie(g, '#c45e18', '#a04a10'), all(glasses, (g) => lanyard(g, '#2a2a30'))),
+  professeur: P('a', ['#6a5a3a', '#4e4228'], (g) => receding(g, '#f0f0f4'), all(glasses, (g) => beard(g, '#f0f0f4'), (g) => bowtie(g, '#3a7a3a'))),
+  nourrice: P('e', ['#7a9ac8', '#5a7aa8'], (g) => nurseCap(g, '#2a1a14'), all(blush, (g) => apron(g, '#f6f6f6'))),
+  gardechasse: P('c', ['#4a5a2a', '#344020'], (g) => { hairShort(g, '#6a4a2e', '#7a5a3e'); bowler(g, '#3a4a20'); }, all((g) => beard(g, '#6a4a2e'))),
+  architecte: P('f', ['#d0d0d8', '#a8a8b4'], (g) => afro(g, '#1a1410', '#2a2018'), all(glasses, (g) => scarf(g, '#e0a830'))),
+  actrice: P('a', ['#c43f6a', '#9a2e52'], (g) => bob(g, '#e8d070', '#f8e090'), all(lips, earrings, sunglasses)),
+  archeologue: P('d', ['#c8a878', '#a88858'], (g) => strawhat(g, '#3a2a20'), all(stubble, (g) => scarf(g, '#c45e18'))),
+  avocat: P('e', ['#141418', '#0a0a0e'], (g) => hairShort(g, '#1a1410', '#2a2018'), all(collar, (g) => tie(g, '#f6f6f6'), glasses)),
+  banquier: P('b', ['#2a2a3a', '#1a1a28'], (g) => { receding(g, '#5a5a6a'); tophat(g, '#1a1a24'); }, all(monocle, (g) => mustache(g, '#5a5a6a'))),
+  explorateur: P('c', ['#a8885a', '#886840'], (g) => { hairShort(g, '#c07a3a', '#d08a4a'); }, all((g) => beard(g, '#c07a3a'), goggles, (g) => scarf(g, '#3a7bd5'))),
+
+  // ---------- Le manoir hanté (22 nouveaux + 8 existants) ----------
+  creature: P(['#8ab878', '#6a9858'], ['#3a3a44', '#26262e'], (g) => { rect(g, cx - rx, cy - ry - 1, 2 * rx + 1, 4, '#1a1a1f'); }, all(bolts, scar)),
+  banshee: P(['#dfe8f0', '#bcc8d8'], ['#8ab0c8', '#6a90a8'], (g) => hairLong(g, '#e8f0ff', '#c8d8f0'), all((g) => { rect(g, cx - 2, 25, 5, 3, '#2a1a3a'); }, blush)),
+  goule: P(['#8a9a8a', '#6a7a6a'], ['#3a2a2a', '#261a1a'], (g) => bald(g, '#4a5a4a'), all(fangs, scar)),
+  gargouille: P(['#8d8f98', '#6d6f78'], ['#5a5c64', '#3e4048'], (g) => horns(g, '#4a4c54'), all(fangs, (g) => rect(g, cx - 6, 17, 12, 1, '#4a4c54'))),
+  diablotin: P(['#d0503a', '#a83a28'], ['#2a1414', '#1a0a0a'], (g) => { hairShort(g, '#1a0a0a', '#2a1414'); horns(g, '#f0e0c0'); }, all(fangs, (g) => goatee(g, '#1a0a0a'))),
+  nonne: P(['#e8eef8', '#c8d0e0'], ['#1a1a24', '#0e0e16'], (g) => hood(g, '#1a1a24', '#0e0e16'), all((g) => rect(g, cx - rx + 1, cy - ry + 2, 2 * rx - 1, 2, '#f6f6f6'), (g) => { rect(g, cx, 35, 1, 6, '#e6c04a'); rect(g, cx - 2, 37, 5, 1, '#e6c04a'); })),
+  pirate: P(['#b8c8d0', '#98a8b0'], ['#5a2a2a', '#3e1a1a'], (g) => { hairLong(g, '#8a8a94', '#a0a0aa'); pirateHat(g); }, all(eyepatch, (g) => beard(g, '#8a8a94'))),
+  poupee: P(['#f8e0e0', '#e0c0c0'], ['#c86a8a', '#a84a6a'], (g) => pigtails(g, '#e8c060', '#f0d080'), all(blush, (g) => { rect(g, cx - 1, 24, 3, 1, '#c03050'); line(g, cx - 6, 22, cx - 4, 26, '#7a6a6a'); })),
+  potiron: P(SK.c, ['#3a2a52', '#281c3a'], null, null, { custom: (g) => { pumpkinFace(g); } }),
+  chasseur: P('c', ['#4a3a2a', '#342818'], (g) => { hairShort(g, '#3a2a20', '#4a3a2a'); bowler(g, '#2a2018'); }, all((g) => beard(g, '#3a2a20'), (g) => { rect(g, cx - 6, 34, 1, 8, '#c8c8d2'); rect(g, cx - 8, 36, 5, 1, '#c8c8d2'); })),
+  medium: P('d', ['#5a2a7a', '#3e1a5a'], (g) => headscarf(g, '#6c5ce7', '#e6c04a'), all(earrings, (g) => necklace(g, '#8fd3ff'), (g) => { ell(g, cx, 41, 3, 3, '#a8d8ff'); })),
+  necromancien: P(['#c8c0d0', '#a8a0b0'], ['#1a1420', '#0e0a14'], (g) => hood(g, '#2a1a3a', '#1a0e28'), all((g) => { set(g, cx - 5, 19, '#7fff7f'); set(g, cx + 4, 19, '#7fff7f'); }, scar)),
+  cyclope: P(SK.e, ['#6a4a2a', '#4e341a'], null, null, { custom: cyclopsFace(['#b0a070', '#908050']) }),
+  sorcier: P('a', ['#2a3a8a', '#1a2a6a'], (g) => { hairLong(g, '#d8d8e0', '#f0f0f4'); wizardHat(g, '#2a3a8a'); }, all((g) => beard(g, '#e8e8f0'))),
+  fossoyeur: P('c', ['#3a3a30', '#26261e'], (g) => { hairShort(g, '#4a4a40', '#5a5a50'); beanie(g, '#4a4a40', '#3a3a30'); }, all(stubble, (g) => { rect(g, cx + 6, 32, 1, 12, '#8a6a4a'); rect(g, cx + 4, 43, 5, 2, '#9aa3ad'); })),
+  croquemitaine: P(['#2a2a34', '#1a1a24'], ['#141418', '#0a0a0e'], (g) => hood(g, '#141418', '#0a0a0e'), all((g) => { rect(g, cx - 5, 19, 2, 2, '#ffd040'); rect(g, cx + 3, 19, 2, 2, '#ffd040'); rect(g, cx - 3, 25, 7, 1, '#ffd040'); })),
+  demone: P(['#e05a7a', '#c03a5a'], ['#3a0a1a', '#26050e'], (g) => { hairLong(g, '#1a0a10', '#2a1018'); horns(g, '#1a0a10'); }, all(lips, earrings)),
+  igor: P('c', ['#5a4a3a', '#3e3428'], (g) => { hairShort(g, '#2a2018', '#3a2a20'); }, all((g) => { rect(g, cx + 5, 30, 8, 5, '#5a4a3a'); }, eyepatch, stubble)),
+  carmilla: P(['#eceff6', '#c8cfe0'], ['#7a0a1a', '#50050e'], (g) => { hairLong(g, '#1a1018', '#2a1a28'); widowPeak(g, '#1a1018'); }, all(fangs, lips, (g) => necklace(g, '#c43f4f'))),
+  ogre: P(['#9ab060', '#7a9040'], ['#6a4a2a', '#4e341a'], (g) => bald(g, '#5a7030'), all(fangs, (g) => rect(g, cx - 6, 17, 12, 1, '#4a5a20'), (g) => { set(g, cx - rx - 2, cy, '#9ab060'); set(g, cx + rx + 1, cy, '#9ab060'); })),
+  chevalier: P(['#b8c8e0', '#98a8c0'], ['#6b7380', '#4a5260'], (g) => knightHelm(g), null),
+  nyx: P(['#c8b8d8', '#a898b8'], ['#2a1a3a', '#1a0e28'], (g) => { bob(g, '#2a1a3a', '#3a2a4a'); batEars(g, '#2a1a3a'); }, all(fangs, (g) => { rect(g, 2, 36, 8, 2, '#2a1a3a'); rect(g, 30, 36, 8, 2, '#2a1a3a'); })),
+
+  // ---------- Les bureaux (25 nouveaux + 5 existants) ----------
+  pdg: P('b', ['#1a2440', '#101830'], (g) => receding(g, '#9a95a8'), all((g) => tie(g, '#c43f4f'), collar, (g) => mustache(g, '#9a95a8'))),
+  developpeur: P('c', ['#2a2a34', '#1a1a24'], (g) => headphones(g, '#3a2a20', '#3a7bd5'), all(glasses, stubble)),
+  designer: P('a', ['#e07a5a', '#c05a3a'], (g) => mohawk(g, '#9b5cd6'), all(earrings, (g) => scarf(g, '#2a9d8f'))),
+  drh: P('d', ['#7a4a8a', '#5a346a'], (g) => bob(g, '#5a3a22', '#6b4a2e'), all(glasses, pearls, lips)),
+  commercial: P('b', ['#3a5a9a', '#2a447a'], (g) => spiky(g, '#2a1a14', '#3a2a20'), all((g) => tie(g, '#e0a830'), collar)),
+  juriste: P('e', ['#3a3a44', '#26262e'], (g) => bun(g, '#1a1410', '#2a2018'), all(glasses, lips, collar)),
+  informaticien: P('a', ['#2a6a4a', '#1a4e34'], (g) => curly(g, '#c07a3a', '#d08a4a'), all(glasses, freckles, (g) => lanyard(g, '#3a7bd5'))),
+  standardiste: P('c', ['#c43f6a', '#9a2e52'], (g) => headphones(g, '#e8c060', '#2a2a30'), all(lips, earrings)),
+  coursier: P('e', ['#e0a830', '#c08818'], (g) => cap(g, '#1a1410', '#e0a830'), all(stubble, (g) => { line(g, cx - 6, 32, cx + 6, 44, '#3a2a20'); })),
+  agentmenage: P('f', ['#3a8a9a', '#2a6a7a'], (g) => headscarf(g, '#e0a830', '#c43f4f'), all(earrings, (g) => apron(g, '#2a6a7a'))),
+  consultante: P('b', ['#2a2a34', '#1a1a24'], (g) => ponytail(g, '#d9b45e', '#e9c877'), all(glasses, earrings, collar)),
+  analyste: P('d', ['#4a6aa8', '#344e88'], (g) => hairShort(g, '#1a1410', '#2a2018'), all(glasses, (g) => goatee(g, '#1a1410'), (g) => lanyard(g, '#c43f4f'))),
+  chefprojet: P('a', ['#8a3a3a', '#6a2828'], (g) => hairLong(g, '#c07a3a', '#d08a4a'), all(freckles, (g) => lanyard(g, '#2a9d8f'))),
+  assistante: P('e', ['#c8a0d0', '#a880b0'], (g) => braids(g, '#1a1410', '#2a2018'), all(earrings, lips)),
+  community: P('a', ['#f0c040', '#d0a020'], (g) => pigtails(g, '#e86aa0', '#f88ab8'), all(sunglasses, blush)),
+  daf: P('c', ['#1a1a24', '#0e0e16'], (g) => bald(g, '#5a5a6a'), all(glasses, (g) => tie(g, '#3a7bd5'), collar)),
+  auditrice: P('b', ['#5a5a6a', '#42424e'], (g) => bob(g, '#c8c8d2', '#e0e0e8'), all(glasses, pearls)),
+  acheteur: P('e', ['#6a8a3a', '#4e6a28'], (g) => hairShort(g, '#1a1410', '#2a2018'), all((g) => beard(g, '#1a1410'), (g) => tie(g, '#f6f6f6'))),
+  formatrice: P('d', ['#2a9d8f', '#1d6f65'], (g) => afro(g, '#2a1a14', '#3a2a20'), all(earrings, lips, (g) => necklace(g, '#e6c04a'))),
+  barista: P('b', ['#5a3a22', '#3e2814'], (g) => beanie(g, '#3a3a44', '#2a2a30'), all((g) => beard(g, '#7a4a2e'), (g) => apron(g, '#2a2a30'))),
+  syndicaliste: P('c', ['#c43f3f', '#9a2e2e'], (g) => receding(g, '#6a6474'), all((g) => mustache(g, '#6a6474'), (g) => badge(g, '#f6f6f6'))),
+  paie: P('a', ['#6a8ac8', '#4a6aa8'], (g) => hairLong(g, '#3a2a22', '#4a362b'), all(glasses, earrings)),
+  livreur: P('f', ['#3a7a3a', '#2a5a2a'], (g) => cap(g, '#1a1410', '#3a7a3a'), all((g) => { rect(g, cx - 10, 36, 6, 6, '#c49a60'); })),
+  traductrice: P('c', ['#9a5ad6', '#7a3ab6'], (g) => headscarf(g, '#2a9d8f', '#f6f6f6'), all(glasses, lips)),
+  archiviste: P('a', ['#7a6a5a', '#5e4e40'], (g) => { bald(g, '#d0d0d8'); }, all((g) => beard(g, '#d0d0d8'), glasses, (g) => scarf(g, '#7a2a2a'))),
+
+  // ---------- L'usine (27 nouveaux + 3 existants) ----------
+  soudeur: P('c', ['#3a4a5a', '#2a3644'], (g) => { hairShort(g, '#3a2a20', '#4a3a2a'); rect(g, cx - rx, cy - ry - 2, 2 * rx + 1, 6, '#2a2a30'); rect(g, cx - 4, cy - ry, 9, 2, '#3a7a5a'); }, all(stubble)),
+  cariste: P('e', ['#e07a1a', '#c05e10'], (g) => hardhat(g, '#1a1410', '#e0a830', '#f0c040'), all((g) => mustache(g, '#1a1410'), vestStripes)),
+  electricienne: P('b', ['#3a5a8a', '#2a446a'], (g) => { ponytail(g, '#c07a3a', '#d08a4a'); hardhat(g, '#c07a3a', '#3a7bd5', '#5a9be5'); }, all(goggles, freckles)),
+  mecanicien: P('c', ['#2a4a7a', '#1a345a'], (g) => bandana(g, '#2a1a14', '#c43f3f'), all(stubble, (g) => { set(g, cx - 5, 23, '#2a2a30'); set(g, cx + 6, 21, '#2a2a30'); })),
+  chimiste: P('a', ['#f0f0f4', '#c8cad4'], (g) => curly(g, '#3a2a20', '#4a3a2a'), all(goggles, glasses)),
+  magasinier: P('d', ['#5a6a3a', '#3e4a28'], (g) => beanie(g, '#3a7bd5', '#2a5aa8'), all((g) => beard(g, '#2a1a14'))),
+  routier: P('c', ['#7a2a2a', '#5a1a1a'], (g) => cap(g, '#5a4a3a', '#3a7bd5'), all(sunglasses, (g) => mustache(g, '#5a4a3a'))),
+  directeurusine: P('a', ['#2a3a5a', '#1a2a44'], (g) => { receding(g, '#8a8494'); hardhat(g, '#8a8494', '#f6f6f6', '#ffffff'); }, all(glasses, (g) => tie(g, '#3a7bd5'))),
+  qualiticienne: P('e', ['#f0f0f4', '#c8cad4'], (g) => bun(g, '#1a1410', '#2a2018'), all(glasses, (g) => badge(g, '#2fbf71'))),
+  maintenance: P('b', ['#e0a830', '#c08818'], (g) => cap(g, '#6a4a2e', '#2a2a30'), all(stubble, vestStripes)),
+  fondeur: P('d', ['#8a8a94', '#6a6a74'], (g) => { bald(g, '#2a1a14'); goggles(g); }, all((g) => beard(g, '#2a1a14'), (g) => apron(g, '#5a3a22'))),
+  carrossier: P('a', ['#c43f3f', '#9a2e2e'], (g) => spiky(g, '#e0c060', '#f0d880'), all((g) => rect(g, cx - 6, 24, 12, 4, '#f6f6f6'))),
+  tourneur: P('f', ['#3a5a3a', '#2a442a'], (g) => hairShort(g, '#1a1410', '#2a2018'), all(goggles, (g) => goatee(g, '#1a1410'))),
+  chaudronnier: P('c', ['#5a3a22', '#3e2814'], (g) => { hairShort(g, '#c07a3a', '#d08a4a'); }, all((g) => beard(g, '#c07a3a'), (g) => apron(g, '#2a2a30'))),
+  infirmiere: P('d', ['#f6f6f6', '#d0d0d8'], (g) => nurseCap(g, '#3a2a20'), all(stetho, lips)),
+  cantiniere: P('b', ['#f6f6f6', '#d0d0d8'], (g) => headscarf(g, '#f6f6f6', '#e04050'), all(blush, (g) => apron(g, '#3a7bd5'))),
+  gardien: P('e', ['#1a2a44', '#101c30'], (g) => policeCap(g, '#1a1410', '#1a2a44'), all((g) => mustache(g, '#1a1410'), (g) => badge(g, '#e6c04a'))),
+  logisticienne: P('c', ['#2a9d8f', '#1d6f65'], (g) => braids(g, '#3a2a20', '#4a3a2a'), all((g) => lanyard(g, '#e0a830'), earrings)),
+  apprenti: P('a', ['#3a7bd5', '#2a5aa8'], (g) => capBack(g, '#c07a3a', '#e0a830'), all(freckles)),
+  hse: P('d', ['#2fbf71', '#1f9f51'], (g) => hardhat(g, '#2a1a14', '#2fbf71', '#5fdf91'), all(glasses, vestStripes)),
+  grutier: P('b', ['#e0a830', '#c08818'], (g) => hardhat(g, '#5a3a22', '#c43f3f', '#e05a5a'), all((g) => beard(g, '#5a3a22'), vestStripes)),
+  emballeuse: P('e', ['#6a5aa8', '#4e4088'], (g) => ponytail(g, '#1a1410', '#2a2018'), all(earrings, (g) => apron(g, '#c49a60'))),
+  ajusteur: P('c', ['#4a5a6a', '#344250'], (g) => bald(g, '#3a2a20'), all((g) => mustache(g, '#3a2a20'), goggles)),
+  roboticienne: P('a', ['#3a3a44', '#26262e'], (g) => bob(g, '#2a9d8f', '#3cb8a8'), all(glasses, (g) => lanyard(g, '#38e1ff'))),
+  laborantine: P('f', ['#f0f0f4', '#c8cad4'], (g) => afro(g, '#2a1a14', '#3a2a20'), all(goggles, earrings)),
+  inspecteur: P('b', ['#5a5a3a', '#42422a'], (g) => { hairShort(g, '#5a5a6a', '#6a6a7a'); bowler(g, '#3a3a2a'); }, all(glasses, (g) => tie(g, '#7a2a2a'), (g) => mustache(g, '#5a5a6a'))),
+  docker: P('d', ['#2a4a6a', '#1a344e'], (g) => beanie(g, '#c43f3f', '#9a2e2e'), all((g) => beard(g, '#2a1a14'), scar)),
+};
+Object.assign(CHARS, CAST);
+
 for (const [id, ch] of Object.entries(CHARS)) {
   const g = grid(W, HT);
   charBust(g, ch.outfit[0], ch.outfit[1]);
   if (ch.custom) ch.custom(g);
-  else { charBase(g, ch.skin[0], ch.skin[1]); charFeatures(g, ch.dead); ch.hair(g); if (ch.acc) ch.acc(g); }
+  else { charBase(g, ch.skin[0], ch.skin[1]); charFeatures(g, ch.dead); if (ch.hair) ch.hair(g); if (ch.acc) ch.acc(g); }
   outline(g, C.out);
   writeFileSync(ROOT + `src/assets/characters/${id}.svg`, toSVG(g));
 }
@@ -186,11 +360,6 @@ const M1 = '#9aa3ad', M2 = '#6b7380', M3 = '#3a4048';
 const duvet = { bleu: ['#4f78c4', '#3a5d9e'], rouge: ['#c43f4f', '#9c2e3c'], vert: ['#3fae6a', '#2e8a52'] };
 
 function tile(draw) { const g = grid(T, T); draw(g); outline(g, OUT); return toSVG(g); }
-const line = (g, x0, y0, x1, y1, c) => {
-  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
-  let err = dx + dy;
-  for (;;) { set(g, x0, y0, c); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
-};
 const legs = (g, xs, y0, y1, c) => { for (const x of xs) rect(g, x, y0, 1, y1 - y0, c); };
 
 // Chaque clé = un visuel unique, reconnaissable à sa silhouette (les cases bloquées sont grisées).
@@ -486,5 +655,6 @@ for (const [key, draw] of Object.entries(FURN)) {
   writeFileSync(ROOT + `src/assets/furniture/${key.replace(':', '-')}.svg`, tile(draw));
 }
 writeFileSync(ROOT + '.tmp/furniture-keys.json', JSON.stringify(Object.keys(FURN)));
+writeFileSync(ROOT + '.tmp/character-keys.json', JSON.stringify(Object.keys(CHARS)));
 
 console.log('Assets pixel générés : ' + Object.keys(CHARS).length + ' personnages, ' + Object.keys(FURN).length + ' meubles.');

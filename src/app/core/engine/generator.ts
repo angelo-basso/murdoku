@@ -60,6 +60,11 @@ export function generate(o: GenOptions): DeductionCase | null {
   const size = o.size ?? def.size;
   if (!theme.layouts[size] || theme.people.length < size) return null;
 
+  // Distribution de l'affaire : `size` personnages tirés parmi les 30 du décor ;
+  // le premier tiré est la victime (affiché en tête de la réserve).
+  const cast: Person[] = shuffle(rngOf(`${o.seed}|cast`), theme.people).slice(0, size)
+    .map((p, i) => (i === 0 ? { ...p, victim: true } : { ...p }));
+
   for (let salt = 0; salt < 60; salt++) {
     const rnd = rngOf(`${o.seed}|${salt}`);
     const layout = pick(rnd, theme.layouts[size]);
@@ -72,7 +77,7 @@ export function generate(o: GenOptions): DeductionCase | null {
     const tints: Record<string, string> = {};
     roomIds.forEach((id, i) => { roomDef[id] = defs[i]; roomNames[id] = defs[i].name; tints[id] = theme.tintPalette[i % theme.tintPalette.length]; });
     const furniture = furnish(rnd, rooms, roomDef);
-    const people: Person[] = theme.people.slice(0, size).map((p) => ({ ...p }));
+    const people = cast;
     const kase: DeductionCase = { id: '', title: '', n: size, intro: '', rooms, roomNames, furniture, blocking: BLOCKING, people, clues: [], tints };
 
     const sol = findSolution(kase, rnd, people);
@@ -269,7 +274,9 @@ function clueText(kase: DeductionCase, clue: Clue): string {
   const nm = (id: string) => kase.people.find((p) => p.id === id)!.name;
   const rn = (room: string) => kase.roomNames[room];
   switch (clue.t) {
-    case 'room': return `${nm(clue.who!)} se trouvait dans « ${rn(clue.room!)} ».`;
+    case 'room':
+      if (kase.people.find((p) => p.id === clue.who)?.victim) return `Le corps de ${nm(clue.who!)} a été découvert dans « ${rn(clue.room!)} ».`;
+      return `${nm(clue.who!)} se trouvait dans « ${rn(clue.room!)} ».`;
     case 'notRoom': return `${nm(clue.who!)} n'était pas dans « ${rn(clue.room!)} ».`;
     case 'furniture': return `${nm(clue.who!)} se trouvait ${FURNITURE[clue.ftype! + (clue.color ? ':' + clue.color : '')].on}.`;
     case 'nextToFurniture': return `${nm(clue.who!)} était juste à côté ${FURNITURE[clue.ftype!].next}.`;

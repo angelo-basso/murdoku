@@ -1,4 +1,5 @@
 import { Person } from '../models/deduction.models';
+import { CAST_BUREAUX, CAST_HANTE, CAST_MANOIR, CAST_USINE } from './casts';
 
 /** Meuble : un nom = un visuel unique (src/assets/furniture/<clé>.svg), dans tous les décors. */
 export interface FurnitureDef {
@@ -99,7 +100,7 @@ export interface DeductionTheme {
   tintPalette: string[];
   /** taille → liste de plans (chaque plan = lignes de lettres de pièces). */
   layouts: Record<number, string[][]>;
-  /** Personnes (ordonnées, [0] = victime). Au moins 9 pour l'expert 9×9. */
+  /** Distribution du décor (30 personnes) : chaque affaire en tire une partie et choisit la victime. */
   people: Person[];
 }
 
@@ -133,18 +134,6 @@ const PALETTE_OFFICE = ['#1d2a3a', '#23303d', '#1a2b2b', '#2b2a3a', '#1e3330', '
 const PALETTE_FACTORY = ['#2a2418', '#1f2a2a', '#30261c', '#232a1c', '#2b2020', '#1e2630', '#33281a', '#20251c',
   '#2c241e', '#1c2826', '#2e2a1a', '#242a30', '#30201a', '#1d2a22', '#2a2a2a', '#28221c'];
 
-/** Personnel d'entreprise, partagé par les décors « bureaux » et « usine ». */
-const STAFF: Person[] = [
-  { id: 'victime', name: 'M. Bernard, le PDG', role: 'la victime', victim: true },
-  { id: 'ouvrier', name: "Kevin l'Ouvrier", role: 'ouvrier' },
-  { id: 'contremaitre', name: 'Joël le Contremaître', role: 'contremaître' },
-  { id: 'ingenieure', name: "Sarah l'Ingénieure", role: 'ingénieure' },
-  { id: 'secretaire', name: 'Nadia la Secrétaire', role: 'secrétaire' },
-  { id: 'comptable', name: 'Paul le Comptable', role: 'comptable' },
-  { id: 'directrice', name: 'Hélène la Directrice', role: 'directrice' },
-  { id: 'stagiaire', name: 'Théo le Stagiaire', role: 'stagiaire' },
-  { id: 'vigile', name: 'Momo le Vigile', role: 'vigile' },
-];
 
 export const CLASSIC_THEME: DeductionTheme = {
   id: 'manoir',
@@ -171,17 +160,7 @@ export const CLASSIC_THEME: DeductionTheme = {
   ],
   tintPalette: PALETTE_WARM,
   layouts: LAYOUTS,
-  people: [
-    { id: 'victime', name: 'M. Hervé', role: 'la victime', victim: true },
-    { id: 'plaquiste', name: 'Hugo le Plaquiste', role: 'plaquiste' },
-    { id: 'notaire', name: 'Léa la Notaire', role: 'notaire' },
-    { id: 'peintre', name: 'Sofia la Peintre', role: 'peintre' },
-    { id: 'jardinier', name: 'Marco le Jardinier', role: 'jardinier' },
-    { id: 'libraire', name: 'Inès la Libraire', role: 'libraire' },
-    { id: 'medecin', name: 'Dr. Blanche', role: 'médecin' },
-    { id: 'cuisinier', name: 'Gaston le Cuisinier', role: 'cuisinier' },
-    { id: 'gouvernante', name: 'Maud la Gouvernante', role: 'gouvernante' },
-  ],
+  people: CAST_MANOIR,
 };
 
 export const HAUNTED_THEME: DeductionTheme = {
@@ -209,17 +188,7 @@ export const HAUNTED_THEME: DeductionTheme = {
   ],
   tintPalette: PALETTE_HAUNTED,
   layouts: LAYOUTS,
-  people: [
-    { id: 'victime', name: 'Alfred le Majordome', role: 'la victime', victim: true },
-    { id: 'vampire', name: 'Vlad le Vampire', role: 'vampire' },
-    { id: 'sorciere', name: 'Morgane la Sorcière', role: 'sorcière' },
-    { id: 'zombie', name: 'Zef le Zombie', role: 'zombie' },
-    { id: 'loupgarou', name: 'Rémus le Loup-Garou', role: 'loup-garou' },
-    { id: 'momie', name: 'Aménia la Momie', role: 'momie' },
-    { id: 'squelette', name: 'Oscar le Squelette', role: 'squelette' },
-    { id: 'fantome', name: 'Ophélie le Fantôme', role: 'fantôme' },
-    { id: 'epouvantail', name: "Jack l'Épouvantail", role: 'épouvantail' },
-  ],
+  people: CAST_HANTE,
 };
 
 export const OFFICE_THEME: DeductionTheme = {
@@ -246,7 +215,7 @@ export const OFFICE_THEME: DeductionTheme = {
   ],
   tintPalette: PALETTE_OFFICE,
   layouts: LAYOUTS,
-  people: STAFF,
+  people: CAST_BUREAUX,
 };
 
 export const FACTORY_THEME: DeductionTheme = {
@@ -273,7 +242,7 @@ export const FACTORY_THEME: DeductionTheme = {
   ],
   tintPalette: PALETTE_FACTORY,
   layouts: LAYOUTS,
-  people: STAFF,
+  people: CAST_USINE,
 };
 
 export const THEMES: Record<string, DeductionTheme> = {
