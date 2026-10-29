@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Crée la clé de signature Android de Huis Clos et l'enregistre dans les secrets GitHub du dépôt.
+# Crée la clé de signature Android de Meurtre au carré et l'enregistre dans les secrets GitHub du dépôt.
 # À lancer UNE SEULE FOIS, sur ton ordinateur (prérequis : Java/keytool et gh connecté).
 # ⚠️ Garde huisclos-release.jks et le mot de passe en lieu sûr : sans eux, impossible de publier
 #    une mise à jour de l'appli (Android refuse une mise à jour signée par une autre clé).

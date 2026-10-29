@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'fr.straswebngine.huisclos',
-  appName: 'Huis Clos',
+  appId: 'fr.straswebngine.meurtreaucarre',
+  appName: 'Meurtre au carré',
   webDir: 'www',
   server: {
     androidScheme: 'https',

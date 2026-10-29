@@ -25,6 +25,7 @@
     <line x1="1227" y1="1017" x2="1227" y2="1283"/><line x1="1294" y1="1017" x2="1294" y2="1283"/><line x1="1361" y1="1017" x2="1361" y2="1283"/><line x1="1428" y1="1017" x2="1428" y2="1283"/>
   </g>
   <g clip-path="url(#lc)"><rect x="1294" y="1083" width="67" height="67" fill="#eb445a" fill-opacity="0.9"/><circle cx="1327" cy="1116" r="16" fill="#fff"/></g>
-  <text x="1366" y="1720" text-anchor="middle" font-family="Georgia, serif" font-size="176" font-weight="700" letter-spacing="12" fill="url(#gold)">HUIS CLOS</text>
-  <text x="1366" y="1800" text-anchor="middle" font-family="Georgia, serif" font-size="52" letter-spacing="18" fill="#9a8fc0">ENQU&#202;TES LOGIQUES</text>
+  <text x="1366" y="1790" text-anchor="middle" font-family="Georgia, serif" font-size="170" font-weight="700" letter-spacing="10" fill="url(#gold)">MEURTRE</text>
+  <text x="1366" y="1930" text-anchor="middle" font-family="Georgia, serif" font-size="120" font-weight="700" letter-spacing="14" fill="url(#gold)">AU CARR&#201;</text>
+  <text x="1366" y="2020" text-anchor="middle" font-family="Georgia, serif" font-size="52" letter-spacing="18" fill="#9a8fc0">ENQU&#202;TES LOGIQUES</text>
 </svg>

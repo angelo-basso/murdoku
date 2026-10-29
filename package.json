@@ -1,8 +1,8 @@
 {
-  "name": "huis-clos",
+  "name": "meurtre-au-carre",
   "version": "1.0.0",
   "author": "Angelo Basso",
-  "description": "Huis Clos - enquêtes logiques : placez les suspects, démasquez le coupable (Ionic + Angular + Capacitor)",
+  "description": "Meurtre au carré - enquêtes logiques : placez les suspects, démasquez le coupable (Ionic + Angular + Capacitor)",
   "license": "MIT",
   "scripts": {
     "ng": "ng",
