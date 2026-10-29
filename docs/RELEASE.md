@@ -51,5 +51,12 @@ Lien de téléchargement permanent de la dernière version :
    31 août 2026) : passage à une version récente de Capacitor.
 3. Créer l'appli `fr.straswebngine.huisclos`, envoyer le `.aab` d'une Release, remplir la fiche
    (textes prêts dans `docs/store-listing.md`) et la politique de confidentialité
-   (`docs/privacy-policy.md`, à publier sur une page web).
+   (publiée par GitHub Pages : `site/confidentialite.html`).
 4. Activer « Play App Signing » en gardant cette clé comme clé d'importation.
+
+## Site (GitHub Pages)
+
+Le dossier `site/` (présentation, lien de téléchargement, politique de confidentialité) est publié
+par l'action *Site (GitHub Pages)* à chaque modification sur `main`.
+Prérequis, une seule fois : **Settings › Pages › Source = « GitHub Actions »**.
+Adresse : `https://angelo-basso.github.io/<nom-du-dépôt>/`.
