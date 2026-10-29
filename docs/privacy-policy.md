@@ -1,8 +1,8 @@
-# Politique de confidentialité — Huis Clos
+# Politique de confidentialité — Meurtre au carré
 
 *Dernière mise à jour : 29 octobre 2026*
 
-Huis Clos est un jeu de logique hors ligne édité par straswebngine.fr.
+Meurtre au carré est un jeu de logique hors ligne édité par straswebngine.fr.
 
 **Aucune donnée personnelle n'est collectée.** L'application ne demande pas de compte, ne contient
 ni publicité ni outil de mesure d'audience, et n'envoie aucune information sur Internet.

@@ -1,6 +1,6 @@
-# Fiche du store — Huis Clos
+# Fiche du store — Meurtre au carré
 
-**Nom** (30 car. max) : Huis Clos : enquêtes logiques
+**Nom** (30 car. max) : Meurtre au carré : enquêtes
 
 **Description courte** (80 car. max) :
 Placez les suspects, respectez les indices, démasquez le coupable. 100 enquêtes !
@@ -10,7 +10,7 @@ Placez les suspects, respectez les indices, démasquez le coupable. 100 enquête
 Un meurtre vient d'être commis. Chaque suspect se trouvait quelque part dans la maison… à vous de
 reconstituer la scène !
 
-Huis Clos est un jeu de logique qui mêle sudoku et enquête policière :
+Meurtre au carré est un jeu de logique qui mêle sudoku et enquête policière :
 • une seule personne par ligne, par colonne et par pièce ;
 • chaque indice compte : « à côté du piano », « pas dans la cuisine », « à gauche du jardinier »… ;
 • le coupable est le seul à partager la pièce de la victime.

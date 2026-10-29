@@ -15,7 +15,7 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
   template: `
     <ion-content [fullscreen]="true" class="ion-padding mk-page home">
       <div class="mk-wrap">
-        <h1 class="sr-only">Huis Clos, enquêtes logiques</h1>
+        <h1 class="sr-only">Meurtre au carré, enquêtes logiques</h1>
         <img class="logo" src="assets/brand/logo.svg" alt="" />
         <p class="tagline">Placez les suspects d'après les indices et démasquez le coupable.</p>
         <p class="wallet" [attr.aria-label]="progress.energy() + ' énergies, ' + progress.balance() + ' étoiles, ' + progress.inventory().hints + ' indices, ' + progress.inventory().loupes + ' loupes'">

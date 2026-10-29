@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: angelo-basso/huis-clos
+  IMAGE_NAME: angelo-basso/meurtre-au-carre
 
 permissions:
   contents: read

@@ -1,4 +1,4 @@
-# Publier Huis Clos
+# Publier Meurtre au carré
 
 ## Une seule fois : la clé de signature
 
@@ -29,11 +29,11 @@ git push origin v1.0.0
 ```
 
 L'action **Release** compile, signe et crée la Release GitHub
-« Huis Clos 1.0.0 » avec :
+« Meurtre au carré 1.0.0 » avec :
 
-- `HuisClos-1.0.0.apk` : à installer directement sur un téléphone ; les versions suivantes
+- `MeurtreAuCarre-1.0.0.apk` : à installer directement sur un téléphone ; les versions suivantes
   s'installent **par-dessus** (sans désinstaller, la progression est conservée) ;
-- `HuisClos-1.0.0.aab` : le format exigé par Google Play.
+- `MeurtreAuCarre-1.0.0.aab` : le format exigé par Google Play.
 
 Numérotation : `vMAJEUR.MINEUR.CORRECTIF` (ex. `v1.0.1` pour une correction, `v1.1.0` pour une
 nouveauté). Le numéro interne Android (versionCode) en est déduit automatiquement.
@@ -49,7 +49,7 @@ Lien de téléchargement permanent de la dernière version :
 1. Créer un compte Google Play Console (25 $ une fois).
 2. Mettre l'appli au niveau d'API exigé par Google Play (Android 16 / API 36 depuis le
    31 août 2026) : passage à une version récente de Capacitor.
-3. Créer l'appli `fr.straswebngine.huisclos`, envoyer le `.aab` d'une Release, remplir la fiche
+3. Créer l'appli `fr.straswebngine.meurtreaucarre`, envoyer le `.aab` d'une Release, remplir la fiche
    (textes prêts dans `docs/store-listing.md`) et la politique de confidentialité
    (publiée par GitHub Pages : `site/confidentialite.html`).
 4. Activer « Play App Signing » en gardant cette clé comme clé d'importation.

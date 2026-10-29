@@ -73,7 +73,7 @@ import { Settings, SettingsService } from '../../core/services/settings.service'
           <ion-note class="note">Annonces vocales : chaque coup, erreur et victoire est lu par le lecteur d'écran. Le jeu se joue entièrement avec TalkBack (Android) ou VoiceOver (iOS) : chaque case annonce sa ligne, sa colonne, sa pièce,
             son meuble et son occupant ; chaque coup est décrit à voix haute. Le plan des pièces est lisible après le plateau.</ion-note>
         </ion-list>
-        <p class="version">Huis Clos {{ version() }}</p>
+        <p class="version">Meurtre au carré {{ version() }}</p>
       </div>
     </ion-content>
   `,

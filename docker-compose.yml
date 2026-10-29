@@ -1,11 +1,11 @@
 services:
-  huis-clos:
+  meurtre-au-carre:
     # Option A — construire l'image localement à partir du Dockerfile :
     build: .
     # Option B — utiliser l'image publiée par la CI (commenter `build` ci-dessus) :
-    # image: ghcr.io/angelo-basso/huis-clos:latest
-    image: huis-clos:latest
-    container_name: huis-clos
+    # image: ghcr.io/angelo-basso/meurtre-au-carre:latest
+    image: meurtre-au-carre:latest
+    container_name: meurtre-au-carre
     ports:
       - "8080:80" # http://localhost:8080
     restart: unless-stopped

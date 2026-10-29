@@ -1,4 +1,4 @@
-# Huis Clos — enquêtes logiques
+# Meurtre au carré — enquêtes logiques
 
 Un meurtre a été commis. Placez chaque suspect sur le plan de la maison d'après les indices,
 et démasquez le coupable : le seul à partager la pièce de la victime.
@@ -49,7 +49,7 @@ APK de test.
 ```bash
 docker compose up -d --build                     # http://localhost:8080
 # ou l'image publiée par la CI :
-docker run -d -p 8080:80 --name huis-clos --restart unless-stopped ghcr.io/angelo-basso/huis-clos:latest
+docker run -d -p 8080:80 --name meurtre-au-carre --restart unless-stopped ghcr.io/angelo-basso/meurtre-au-carre:latest
 ```
 
 ## Licence
