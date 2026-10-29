@@ -438,6 +438,8 @@ export class DeductionPage implements OnInit, OnDestroy {
   readonly noEnergy = signal(false);
   /** Indice ou loupe utilisé pendant la partie : pas de bonus « éclair ». */
   private helped = false;
+  /** L'énergie de cette enquête a été dépensée (ou c'est une reprise) : toujours sauvegarder. */
+  private paid = false;
   readonly energyMax = ENERGY_MAX;
   fmt(ms: number): string { return formatTime(ms); }
   readonly flagged = signal<Set<string>>(new Set());
@@ -653,7 +655,8 @@ export class DeductionPage implements OnInit, OnDestroy {
     let saved = this.progress.getSave(c.id);
     if (saved && saved.fp !== caseFingerprint(c)) { this.progress.clearSave(c.id); saved = null; } // niveau modifié depuis
     // Lancer une nouvelle enquête coûte 1 énergie (reprendre une partie ou l'initiation : gratuit).
-    if (!saved && !this.tutorial && !this.progress.spendEnergy()) {
+    const mustPay = !saved && !this.tutorial;
+    if (mustPay && !this.progress.spendEnergy()) {
       this.loading.set(false);
       this.noEnergy.set(true);
       this.announcer.say('Plus d\'énergie. Reviens dans quelques minutes ou passe par la boutique.');
@@ -662,6 +665,9 @@ export class DeductionPage implements OnInit, OnDestroy {
     this.session = this.game.start(c, saved ?? undefined);
     if (saved) this.struck.set(new Set(saved.struck));
     this.loading.set(false);
+    // Enquête payée : sauvegardée tout de suite, pour qu'un retour au menu ne la fasse pas repayer.
+    this.paid = mustPay || !!saved;
+    if (mustPay) this.saveNow();
   }
 
   ionViewDidEnter(): void {
@@ -687,7 +693,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     if (!this.owns()) return;
     const c = this.game.currentCase();
     if (!c || this.loading() || this.game.culprit() || !this.saveRoute.length) return;
-    if (!this.placedCount() && this.game.elapsed() < 5000) return; // rien d'intéressant à reprendre
+    if (!this.paid && !this.placedCount() && this.game.elapsed() < 5000) return; // rien d'intéressant à reprendre
     const snap = this.game.snapshot();
     this.progress.save(c.id, { ...snap, struck: [...this.struck()], savedAt: Date.now(), title: this.titleLong(), route: this.saveRoute, fp: caseFingerprint(c) });
   }
@@ -1007,6 +1013,8 @@ export class DeductionPage implements OnInit, OnDestroy {
     }
     this.noEnergyReplay.set(false);
     this.resetAll();
+    this.paid = true;
+    this.saveNow();
   }
   readonly noEnergyReplay = signal(false);
 
