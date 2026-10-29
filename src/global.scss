@@ -26,7 +26,7 @@ body {
 }
 /* Focus clavier visible */
 button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
-  outline: 3px solid #f3d57a; outline-offset: 2px;
+  outline: 3px solid var(--mk-gold-text); outline-offset: 2px;
 }
 /* Réglage « animations réduites » */
 body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after {
@@ -37,33 +37,33 @@ body.reduce-motion .confetti { display: none !important; }
 /* ---- Écrans de menu (accueil, classique, sur mesure, réglages, règles) ---- */
 .mk-page::part(scroll) { padding-bottom: 28px; }
 .mk-wrap { max-width: 460px; margin: 0 auto; }
-.mk-card { margin-bottom: 14px; padding: 14px; border-radius: 16px; background: var(--ion-card-background); border: 1px solid #ffffff12; }
+.mk-card { margin-bottom: 14px; padding: 14px; border-radius: 16px; background: var(--ion-card-background); border: 1px solid var(--mk-border); }
 .mk-card h2 { margin: 0 0 8px; font: 600 1.05rem Georgia, serif; color: var(--ion-color-primary); }
 .mk-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .mk-head h2 { margin: 0; }
-.mk-muted { color: #b9b0d6; font-size: .86rem; line-height: 1.45; margin: 6px 0 10px; }
+.mk-muted { color: var(--mk-muted); font-size: .86rem; line-height: 1.45; margin: 6px 0 10px; }
 .mk-primary { width: 100%; margin-top: 12px; min-height: 50px; border-radius: 12px; border: none; background: var(--ion-color-primary);
   color: var(--ion-color-primary-contrast); font: 700 1.02rem Georgia, serif; }
 .mk-primary:disabled { opacity: .45; }
 .mk-secondary { width: 100%; margin-top: 4px; min-height: 46px; border-radius: 12px; background: transparent;
   border: 1px solid rgba(212,175,55,.45); color: var(--ion-color-primary); font-size: .9rem; font-weight: 600; }
 .mk-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-.mk-chip { min-height: 46px; border-radius: 11px; border: 1px solid #ffffff1c; background: #ffffff08; color: var(--ion-text-color); font-size: .84rem; padding: 4px 8px; }
+.mk-chip { min-height: 46px; border-radius: 11px; border: 1px solid var(--mk-border); background: var(--mk-fill); color: var(--ion-text-color); font-size: .84rem; padding: 4px 8px; }
 .mk-chip small { display: block; font-size: .68rem; opacity: .75; }
 .mk-chip[aria-pressed="true"], .mk-chip[aria-selected="true"] { background: var(--ion-color-primary); color: var(--ion-color-primary-contrast); border-color: var(--ion-color-primary); font-weight: 700; }
 .mk-chip:disabled { opacity: .4; border-style: dashed; }
 
 /* Boîtes de dialogue (confirmation d'achat…) aux couleurs du jeu, lisibles en thème sombre */
 ion-alert {
-  --background: #241c42;
+  --background: var(--mk-surface-2);
   --max-width: 320px;
   --backdrop-opacity: .6;
 }
-ion-alert .alert-wrapper { background: #241c42 !important; border: 1px solid rgba(212, 175, 55, .45); border-radius: 16px !important; }
+ion-alert .alert-wrapper { background: var(--mk-surface-2) !important; border: 1px solid rgba(212, 175, 55, .45); border-radius: 16px !important; }
 ion-alert .alert-head, ion-alert .alert-message, ion-alert .alert-button-group, ion-alert .alert-button { background: transparent !important; }
-ion-alert .alert-title { color: #f3d57a !important; font: 600 1.15rem Georgia, serif !important; }
-ion-alert .alert-message { color: #e9e2fb !important; font-size: .95rem !important; line-height: 1.45; }
-ion-alert .alert-button-group { border-top: 1px solid #ffffff1c; }
-ion-alert .alert-button { color: #d4af37 !important; border-color: #ffffff1c !important; }
-ion-alert .alert-button.alert-button-role-cancel { color: #b9b0d6 !important; font-weight: 500 !important; }
+ion-alert .alert-title { color: var(--mk-gold-text) !important; font: 600 1.15rem Georgia, serif !important; }
+ion-alert .alert-message { color: var(--mk-text-soft) !important; font-size: .95rem !important; line-height: 1.45; }
+ion-alert .alert-button-group { border-top: 1px solid var(--mk-border); }
+ion-alert .alert-button { color: #d4af37 !important; border-color: var(--mk-border) !important; }
+ion-alert .alert-button.alert-button-role-cancel { color: var(--mk-muted) !important; font-weight: 500 !important; }
 ion-alert .alert-button:not(.alert-button-role-cancel) { font-weight: 700 !important; }

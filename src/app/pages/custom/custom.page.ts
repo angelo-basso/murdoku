@@ -61,14 +61,14 @@ import { LEVELS_PER_DIFFICULTY, ProgressService } from '../../core/services/prog
     </ion-content>
   `,
   styles: [`
-    .lbl { margin: 14px 0 6px; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: #8f87ad; font-weight: 600; }
+    .lbl { margin: 14px 0 6px; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-dim); font-weight: 600; }
     .codebox { display: flex; gap: 8px; }
-    .codebox input { flex: 1; min-width: 0; min-height: 46px; background: #0003; border: 1px solid #ffffff22; border-radius: 11px;
+    .codebox input { flex: 1; min-width: 0; min-height: 46px; background: #0003; border: 1px solid var(--mk-border); border-radius: 11px;
       color: var(--ion-text-color); padding: 0 12px; font-size: .9rem; }
     .codebox input:focus { outline: none; border-color: var(--ion-color-primary); }
     .codebox button { min-height: 46px; border: 1px solid rgba(212,175,55,.45); background: transparent; color: var(--ion-color-primary);
       border-radius: 11px; padding: 0 16px; font-size: .9rem; font-weight: 600; }
-    .err { color: #ff8a9a; font-size: .85rem; margin: 8px 0 0; }
+    .err { color: var(--mk-danger-text); font-size: .85rem; margin: 8px 0 0; }
   `],
 })
 export class CustomPage implements OnInit, ViewDidEnter {

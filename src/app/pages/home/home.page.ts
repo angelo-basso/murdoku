@@ -71,22 +71,22 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
   styles: [`
     .home::part(scroll) { padding-top: calc(env(safe-area-inset-top, 0px) + 12px); }
     .logo { display: block; width: 100%; max-width: 280px; margin: 6px auto 4px; }
-    .tagline { color: #c9c1e2; font-size: .92rem; line-height: 1.4; margin: 2px auto 18px; text-align: center; max-width: 320px; }
+    .tagline { color: var(--mk-muted); font-size: .92rem; line-height: 1.4; margin: 2px auto 18px; text-align: center; max-width: 320px; }
     .resume, .entry { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border-radius: 16px;
       text-align: left; color: var(--ion-text-color); }
     .resume { margin-bottom: 14px; border: 1px solid var(--ion-color-primary); background: #d4af3718; }
     .resume ion-icon, .entry ion-icon { font-size: 1.5rem; color: var(--ion-color-primary); flex: none; }
     .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
     .txt b { font: 600 1.05rem Georgia, serif; }
-    .txt small { color: #b9b0d6; font-size: .8rem; line-height: 1.3; }
-    .wallet { display: flex; justify-content: center; gap: 16px; margin: -8px 0 16px; color: #f3d57a; font-weight: 700; font-size: .95rem; }
+    .txt small { color: var(--mk-muted); font-size: .8rem; line-height: 1.3; }
+    .wallet { display: flex; justify-content: center; gap: 16px; margin: -8px 0 16px; color: var(--mk-gold-text); font-weight: 700; font-size: .95rem; }
     .menu { display: flex; flex-direction: column; gap: 10px; }
-    .entry { min-height: 72px; background: var(--ion-card-background); border: 1px solid #ffffff14; }
+    .entry { min-height: 72px; background: var(--ion-card-background); border: 1px solid var(--mk-border); }
     .entry:active { transform: scale(.98); }
-    .entry .go { font-size: 1.1rem; color: #8f87ad; }
+    .entry .go { font-size: 1.1rem; color: var(--mk-dim); }
     .entry.locked { border-style: dashed; opacity: .8; }
-    .entry.locked ion-icon { color: #8f87ad; }
-    .locked-msg { margin: 12px 4px; color: #f3d57a; font-size: .86rem; text-align: center; }
+    .entry.locked ion-icon { color: var(--mk-dim); }
+    .locked-msg { margin: 12px 4px; color: var(--mk-gold-text); font-size: .86rem; text-align: center; }
   `],
 })
 export class HomePage implements OnInit, ViewDidEnter {

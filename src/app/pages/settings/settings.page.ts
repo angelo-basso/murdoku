@@ -1,6 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import {
-  IonBackButton, IonButtons, IonContent, IonHeader, IonItem, IonLabel, IonList, IonListHeader, IonNote, IonRange, IonTitle, IonToggle, IonToolbar,
+  IonBackButton, IonButtons, IonContent, IonHeader, IonItem, IonLabel, IonList, IonListHeader, IonNote, IonRange, IonSegment, IonSegmentButton, IonTitle, IonToggle, IonToolbar,
 } from '@ionic/angular/standalone';
 import { AudioService } from '../../core/services/audio.service';
 import { FeedbackService } from '../../core/services/feedback.service';
@@ -9,7 +9,7 @@ import { Settings, SettingsService } from '../../core/services/settings.service'
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent, IonList, IonListHeader, IonItem, IonLabel, IonToggle, IonRange, IonNote],
+  imports: [IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent, IonList, IonListHeader, IonItem, IonLabel, IonToggle, IonRange, IonNote, IonSegment, IonSegmentButton],
   template: `
     <ion-header [translucent]="true">
       <ion-toolbar>
@@ -19,6 +19,18 @@ import { Settings, SettingsService } from '../../core/services/settings.service'
     </ion-header>
     <ion-content class="mk-page">
       <div class="mk-wrap">
+        <ion-list inset>
+          <ion-list-header><ion-label id="theme-lbl">Apparence</ion-label></ion-list-header>
+          <ion-item>
+            <ion-segment [value]="s().theme" (ionChange)="set('theme', $any($event.detail.value))" aria-labelledby="theme-lbl">
+              <ion-segment-button value="system"><ion-label>Auto</ion-label></ion-segment-button>
+              <ion-segment-button value="light"><ion-label>Clair</ion-label></ion-segment-button>
+              <ion-segment-button value="dark"><ion-label>Sombre</ion-label></ion-segment-button>
+            </ion-segment>
+          </ion-item>
+          <ion-note class="note">Auto suit le thème du téléphone (sombre s'il n'en indique aucun). Actuellement : {{ current() }}.</ion-note>
+        </ion-list>
+
         <ion-list inset>
           <ion-list-header><ion-label>Sons</ion-label></ion-list-header>
           <ion-item>
@@ -74,6 +86,7 @@ export class SettingsPage {
   private feedback = inject(FeedbackService);
   private audio = inject(AudioService);
   readonly s = this.settings.settings;
+  readonly current = computed(() => (this.settings.resolvedTheme(this.s().theme) === 'light' ? 'clair' : 'sombre'));
 
   ionViewDidEnter(): void { this.audio.playMusic('menu'); }
 

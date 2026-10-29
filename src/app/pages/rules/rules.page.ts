@@ -52,12 +52,12 @@ import { AudioService } from '../../core/services/audio.service';
   `,
   styles: [`
     .rules ol, .rules ul { list-style: none; margin: 0 0 6px; padding: 0; }
-    .rules li { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 9px; font-size: .9rem; line-height: 1.45; color: #e3dcf5; }
+    .rules li { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 9px; font-size: .9rem; line-height: 1.45; color: var(--mk-text-soft); }
     .rules ul li::before { content: '•'; color: var(--ion-color-primary); }
     .rules li p { margin: 0; }
     .rules .n { flex: 0 0 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
       background: #d4af3722; color: var(--ion-color-primary); font-size: .75rem; font-weight: 700; }
-    .rules b { color: #fff; }
+    .rules b { color: var(--ion-text-color); }
   `],
 })
 export class RulesPage {

@@ -53,3 +53,65 @@
   --murdoku-culprit-border: #eb445a;
   --murdoku-error: #eb445a;
 }
+
+/* Jetons de couleur des écrans (thème sombre par défaut). */
+:root {
+  --mk-gold-text: #f3d57a;
+  --mk-muted: #b9b0d6;
+  --mk-dim: #8f87ad;
+  --mk-text-soft: #e9e2fb;
+  --mk-border: #ffffff1c;
+  --mk-fill: #ffffff08;
+  --mk-off: #ffffff2a;
+  --mk-danger-text: #ff8a9a;
+  --mk-surface-2: #241c42;
+  --mk-success-text: #2dd36f;
+}
+
+/*
+ * Thème clair : papier crème et encre violette ; le plateau de jeu garde ses couleurs
+ * de nuit (comme un plateau de société) pour que les meubles et portraits ressortent.
+ */
+body.theme-light {
+  --ion-color-primary: #a9821a;
+  --ion-color-primary-rgb: 169, 130, 26;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #94721a;
+  --ion-color-primary-tint: #b28f35;
+
+  --ion-background-color: #f6f1e7;
+  --ion-background-color-rgb: 246, 241, 231;
+  --ion-text-color: #241a33;
+  --ion-text-color-rgb: 36, 26, 51;
+  --ion-toolbar-background: #ede5d6;
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-color-step-50: #ece6da;
+  --ion-color-step-100: #e2dbcd;
+  --ion-color-step-150: #d8d0c1;
+  --ion-color-step-200: #cdc4b4;
+  --ion-color-step-250: #c2b9a8;
+  --ion-color-step-300: #b6ad9c;
+  --ion-color-step-400: #9d9483;
+  --ion-color-step-500: #847b6c;
+  --ion-color-step-600: #6b6356;
+  --ion-color-step-700: #534b41;
+  --ion-color-step-800: #3b352d;
+  --ion-color-step-850: #302a24;
+  --ion-color-step-900: #241f1a;
+
+  --murdoku-cell-given-bg: #ffffff;
+  --murdoku-cell-selected-bg: #f3e6bf;
+
+  --mk-gold-text: #8a6a12;
+  --mk-muted: #5e5574;
+  --mk-dim: #7d7590;
+  --mk-text-soft: #3a3050;
+  --mk-border: #2418331f;
+  --mk-fill: #24183308;
+  --mk-off: #2418332e;
+  --mk-danger-text: #c0283e;
+  --mk-surface-2: #f1ebdf;
+  --mk-success-text: #1b8a47;
+}

@@ -59,25 +59,25 @@ import { ProgressService, SHOP, ShopItem } from '../../core/services/progress.se
   `,
   styles: [`
     .wallet { text-align: center; margin: 4px 0 14px; }
-    .bal { margin: 0; font: 700 2rem Georgia, serif; color: #f3d57a; }
-    .bal small { font: 400 .9rem system-ui, sans-serif; color: #b9b0d6; }
-    .inv { margin: 4px 0 0; color: #e3dcf5; font-size: .95rem; }
-    .item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #ffffff10; }
+    .bal { margin: 0; font: 700 2rem Georgia, serif; color: var(--mk-gold-text); }
+    .bal small { font: 400 .9rem system-ui, sans-serif; color: var(--mk-muted); }
+    .inv { margin: 4px 0 0; color: var(--mk-text-soft); font-size: .95rem; }
+    .item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--mk-fill); }
     .item:first-of-type { border-top: none; }
     .ico { font-size: 1.5rem; }
     .txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .txt small { color: #b9b0d6; font-size: .78rem; line-height: 1.3; }
+    .txt small { color: var(--mk-muted); font-size: .78rem; line-height: 1.3; }
     .buy { min-width: 66px; min-height: 42px; border-radius: 11px; border: none; background: var(--ion-color-primary);
       color: var(--ion-color-primary-contrast); font-weight: 700; }
     .buy:disabled { opacity: .35; }
     .frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
     .frame { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: 12px;
-      border: 1px solid #ffffff1c; background: #ffffff07; color: var(--ion-text-color); font-size: .8rem; }
+      border: 1px solid var(--mk-border); background: var(--mk-fill); color: var(--ion-text-color); font-size: .8rem; }
     .frame.on { border-color: var(--ion-color-primary); background: #d4af3718; }
     .frame:disabled { opacity: .4; }
-    .frame small { color: #b9b0d6; }
-    .swatch { width: 44px; height: 44px; border-radius: 6px; border: 4px solid; background: #241c42; }
-    .msg { text-align: center; color: #2dd36f; font-weight: 600; }
+    .frame small { color: var(--mk-muted); }
+    .swatch { width: 44px; height: 44px; border-radius: 6px; border: 4px solid; background: var(--mk-surface-2); }
+    .msg { text-align: center; color: var(--mk-success-text); font-weight: 600; }
   `],
 })
 export class ShopPage {

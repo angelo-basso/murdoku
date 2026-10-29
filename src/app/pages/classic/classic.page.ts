@@ -67,30 +67,30 @@ import { DIFF_ORDER, LEVELS_PER_DIFFICULTY, LEVELS_TO_UNLOCK_NEXT, ProgressServi
     .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; scrollbar-width: none; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { flex: 1 0 auto; min-width: 84px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 1px; padding: 6px 10px; border-radius: 12px; border: 1px solid #ffffff1c; background: #ffffff08; color: var(--ion-text-color); font-size: .82rem; }
+      gap: 1px; padding: 6px 10px; border-radius: 12px; border: 1px solid var(--mk-border); background: var(--mk-fill); color: var(--ion-text-color); font-size: .82rem; }
     .tab small { font-size: .68rem; opacity: .7; }
     .tab.on { background: var(--ion-color-primary); color: var(--ion-color-primary-contrast); border-color: var(--ion-color-primary); }
-    .count { font-size: .8rem; color: #b9b0d6; font-variant-numeric: tabular-nums; }
-    .bar { height: 5px; border-radius: 3px; background: #ffffff12; margin: 10px 0 12px; overflow: hidden; }
+    .count { font-size: .8rem; color: var(--mk-muted); font-variant-numeric: tabular-nums; }
+    .bar { height: 5px; border-radius: 3px; background: var(--mk-border); margin: 10px 0 12px; overflow: hidden; }
     .bar span { display: block; height: 100%; background: var(--ion-color-primary); }
     .levels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
     .lv { position: relative; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-      border-radius: 11px; border: 1px solid #ffffff18; background: #ffffff07; color: var(--ion-text-color); padding: 2px; }
+      border-radius: 11px; border: 1px solid var(--mk-border); background: var(--mk-fill); color: var(--ion-text-color); padding: 2px; }
     .lv:active { transform: scale(.95); }
     .lv .num { font: 700 1.05rem Georgia, serif; line-height: 1; }
     .lv .emo { font-size: .8rem; line-height: 1; opacity: .85; }
-    .lv .best { font-size: .58rem; color: #2dd36f; font-variant-numeric: tabular-nums; }
+    .lv .best { font-size: .58rem; color: var(--mk-success-text); font-variant-numeric: tabular-nums; }
     .lv.done { border-color: #2dd36f66; background: #2dd36f12; }
     .lv.wip { border-color: var(--ion-color-primary); }
     .lv.wip .best { color: var(--ion-color-primary); }
     .lv.locked { opacity: .45; border-style: dashed; }
     .lv.locked .num { font-size: .9rem; }
-    .st { font-size: .62rem; color: #f3d57a; letter-spacing: -1px; }
-    .st .off { color: #ffffff2a; font-style: normal; }
+    .st { font-size: .62rem; color: var(--mk-gold-text); letter-spacing: -1px; }
+    .st .off { color: var(--mk-off); font-style: normal; }
     .st i { font-style: normal; }
     .tab.locked { opacity: .6; border-style: dashed; }
     .scale { font-size: .75rem; margin: -4px 0 10px; }
-    .lockmsg { color: #f3d57a; font-size: .85rem; margin: 0 0 10px; }
+    .lockmsg { color: var(--mk-gold-text); font-size: .85rem; margin: 0 0 10px; }
   `],
 })
 export class ClassicPage implements OnInit, ViewDidEnter {
