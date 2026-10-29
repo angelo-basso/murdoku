@@ -1,8 +1,8 @@
 {
-  "name": "murdoku-app",
-  "version": "0.1.0",
-  "author": "Murdoku",
-  "description": "Murdoku - Sudoku d'enquête policière (Ionic + Angular + Capacitor)",
+  "name": "huis-clos",
+  "version": "1.0.0",
+  "author": "Angelo Basso",
+  "description": "Huis Clos - enquêtes logiques : placez les suspects, démasquez le coupable (Ionic + Angular + Capacitor)",
   "license": "MIT",
   "scripts": {
     "ng": "ng",
@@ -12,7 +12,10 @@
     "test": "ng test",
     "cap:sync": "cap sync",
     "cap:android": "cap open android",
-    "cap:ios": "cap open ios"
+    "cap:ios": "cap open ios",
+    "assets": "node tools/gen-avatars.mjs && node tools/rasterize.mjs",
+    "levels": "esbuild tools/build-levels.ts --bundle --platform=node --outfile=.tmp/levels.cjs --log-level=warning && node .tmp/levels.cjs",
+    "check:engine": "esbuild tools/check-engine.ts --bundle --platform=node --outfile=.tmp/check.cjs --log-level=warning && node .tmp/check.cjs"
   },
   "private": true,
   "dependencies": {
@@ -24,6 +27,7 @@
     "@angular/platform-browser": "^18.2.0",
     "@angular/platform-browser-dynamic": "^18.2.0",
     "@angular/router": "^18.2.0",
+    "@capacitor-community/privacy-screen": "^5.2.1",
     "@capacitor/android": "^6.1.0",
     "@capacitor/app": "^6.0.0",
     "@capacitor/core": "^6.1.0",
@@ -40,8 +44,10 @@
     "@angular-devkit/build-angular": "^18.2.0",
     "@angular/cli": "^18.2.0",
     "@angular/compiler-cli": "^18.2.0",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.1.0",
     "@types/node": "^22.5.0",
+    "playwright": "^1.48.2",
     "typescript": "~5.5.4"
   }
 }

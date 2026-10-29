@@ -1,0 +1,24 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3d57a"/><stop offset="45%" stop-color="#d4af37"/><stop offset="100%" stop-color="#a8841f"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="38%" cy="32%" r="80%">
+      <stop offset="0%" stop-color="#241c42"/><stop offset="100%" stop-color="#120d24"/>
+    </radialGradient>
+    <clipPath id="lcM"><circle cx="500" cy="495" r="88"/></clipPath>
+  </defs>
+  <!-- Motif compact centré, entièrement dans la zone de sécurité adaptive -->
+  <g transform="rotate(45 500 495)">
+    <rect x="483" y="585" width="34" height="150" rx="17" fill="url(#gold)"/>
+    <rect x="470" y="715" width="60" height="60" rx="18" fill="url(#gold)"/>
+  </g>
+  <circle cx="500" cy="495" r="112" fill="url(#gold)"/>
+  <circle cx="500" cy="495" r="98" fill="url(#glass)"/>
+  <g clip-path="url(#lcM)" stroke="#d4af37" stroke-opacity="0.5" stroke-width="3">
+    <line x1="430" y1="462" x2="570" y2="462"/><line x1="430" y1="495" x2="570" y2="495"/><line x1="430" y1="528" x2="570" y2="528"/>
+    <line x1="451" y1="425" x2="451" y2="565"/><line x1="484" y1="425" x2="484" y2="565"/><line x1="517" y1="425" x2="517" y2="565"/><line x1="550" y1="425" x2="550" y2="565"/>
+  </g>
+  <g clip-path="url(#lcM)"><rect x="484" y="462" width="33" height="33" fill="#eb445a" fill-opacity="0.9"/><circle cx="500" cy="478" r="9" fill="#fff"/></g>
+  <path d="M422 410 A112 112 0 0 1 480 362" stroke="#f2ecff" stroke-opacity="0.28" stroke-width="9" stroke-linecap="round" fill="none"/>
+</svg>
