@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { IonBackButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { AlertController, IonBackButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { AnnouncerService } from '../../core/services/announcer.service';
 import { AudioService } from '../../core/services/audio.service';
 import { FeedbackService } from '../../core/services/feedback.service';
@@ -85,6 +85,7 @@ export class ShopPage {
   private feedback = inject(FeedbackService);
   private announcer = inject(AnnouncerService);
   private audio = inject(AudioService);
+  private alerts = inject(AlertController);
   readonly aids = SHOP.filter((s) => s.kind !== 'frame');
   readonly frames = SHOP.filter((s) => s.kind === 'frame');
   readonly msg = signal('');
@@ -94,8 +95,21 @@ export class ShopPage {
 
   owned(id: string): boolean { return this.progress.frames().includes(id); }
 
-  buy(it: ShopItem): void {
+  /** Demande confirmation avant de dépenser des étoiles (équiper un cadre possédé est immédiat). */
+  async buy(it: ShopItem): Promise<void> {
     const wasOwned = it.kind === 'frame' && this.owned(it.id);
+    if (!wasOwned && it.price > 0) {
+      if (this.progress.balance() < it.price) { this.feedback.emit('error'); this.msg.set('Pas assez d\'étoiles.'); return; }
+      const after = this.progress.balance() - it.price;
+      const alert = await this.alerts.create({
+        header: 'Confirmer l\'achat',
+        message: `${it.name} pour ${it.price} étoile${it.price > 1 ? 's' : ''} ? Il te restera ${after} étoile${after > 1 ? 's' : ''}.`,
+        buttons: [{ text: 'Annuler', role: 'cancel' }, { text: 'Acheter', role: 'confirm' }],
+      });
+      await alert.present();
+      const { role } = await alert.onDidDismiss();
+      if (role !== 'confirm') { this.msg.set('Achat annulé.'); return; }
+    }
     if (!this.progress.buy(it)) { this.feedback.emit('error'); this.msg.set('Pas assez d\'étoiles.'); return; }
     this.feedback.emit('hint');
     this.msg.set(wasOwned ? `${it.name} équipé.` : `${it.name} : acheté ! Solde : ${this.progress.balance()} étoiles.`);
