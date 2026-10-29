@@ -65,8 +65,12 @@ export function candidates(c: DeductionCase, whoId: string): [number, number][] 
   return out;
 }
 
-/** Énumère les solutions (une personne par ligne et par colonne), en s'arrêtant à `limit`. */
-export function solve(c: DeductionCase, limit = 2): Placement[] {
+/**
+ * Énumère les solutions (une personne par ligne et par colonne), en s'arrêtant à `limit`.
+ * `victimAlone` cherche au contraire les « fausses fins » : tous les indices respectés,
+ * une personne par pièce, mais la victime seule (aucun meurtrier possible).
+ */
+export function solve(c: DeductionCase, limit = 2, victimAlone = false): Placement[] {
   const ids = c.people.map((p) => p.id);
   const cand: Record<string, [number, number][]> = {};
   for (const id of ids) cand[id] = candidates(c, id);
@@ -85,7 +89,7 @@ export function solve(c: DeductionCase, limit = 2): Placement[] {
   const roomOk = (id: string, room: string): boolean => {
     const n = roomCount[room] ?? 0;
     if (n === 0) return true;
-    return n === 1 && (id === victimId || room === victimRoom);
+    return !victimAlone && n === 1 && (id === victimId || room === victimRoom);
   };
 
   const fits = (id: string, r: number, col: number): boolean => {
@@ -99,25 +103,29 @@ export function solve(c: DeductionCase, limit = 2): Placement[] {
   const rec = (): void => {
     if (solutions.length >= limit) return;
     if (!free.size) {
-      if (!victimRoom || roomCount[victimRoom] === 2) solutions.push({ ...place });
+      if (victimAlone || !victimRoom || roomCount[victimRoom] === 2) solutions.push({ ...place });
       return;
     }
     // Personne la plus contrainte d'abord (MRV) ; abandon dès qu'une n'a plus de case.
     let best: string | null = null;
     let bestOpts: [number, number][] = [];
     const rowSeen = new Array<boolean>(c.n).fill(false), colSeen = new Array<boolean>(c.n).fill(false);
-    let killerPossible = !victimRoom || roomCount[victimRoom] === 2;
+    let killerPossible = victimAlone || !victimRoom || roomCount[victimRoom] === 2;
+    const roomsSeen = victimAlone ? new Set<string>() : null;
     for (const id of free) {
       const opts = cand[id].filter(([r, col]) => fits(id, r, col));
       if (!opts.length) return;
       for (const [r, col] of opts) {
         rowSeen[r] = colSeen[col] = true;
+        roomsSeen?.add(c.rooms[r][col]);
         if (!killerPossible && c.rooms[r][col] === victimRoom) killerPossible = true;
       }
       if (!best || opts.length < bestOpts.length) { best = id; bestOpts = opts; }
     }
     // Chaque ligne/colonne libre doit rester atteignable, et quelqu'un doit pouvoir rejoindre la victime.
     if (!killerPossible) return;
+    // Fausse fin : une pièce par personne restante, il faut au moins autant de pièces libres atteignables.
+    if (roomsSeen && roomsSeen.size < free.size) return;
     for (let i = 0; i < c.n; i++) if ((!usedR[i] && !rowSeen[i]) || (!usedC[i] && !colSeen[i])) return;
     const id = best!;
     free.delete(id);

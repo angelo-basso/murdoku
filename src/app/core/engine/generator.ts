@@ -94,21 +94,24 @@ export function generate(o: GenOptions): DeductionCase | null {
     kase.clues = [mustRoom];
     const sameAs = (a: Placement, b: Placement) => people.every((p) => a[p.id]![0] === b[p.id]![0] && a[p.id]![1] === b[p.id]![1]);
     let ok = true;
-    for (let guard = 0; guard < 120; guard++) {
+    // Solution unique ET aucune « fausse fin » (victime seule, tous les indices respectés).
+    const valid = (clues: Clue[]) => solve({ ...kase, clues }, 2).length === 1 && !solve({ ...kase, clues }, 1, true).length;
+    for (let guard = 0; guard < 160; guard++) {
       const sols = solve(kase, 2);
-      if (sols.length === 1) break;
-      const spurious = sols.find((s) => !sameAs(s, sol.place)) ?? sols[0];
+      const fake = sols.length === 1 ? solve(kase, 1, true)[0] : undefined;
+      if (sols.length === 1 && !fake) break;
+      const spurious = fake ?? sols.find((s) => !sameAs(s, sol.place)) ?? sols[0];
       const elim = truePool.find((cl) => !kase.clues.includes(cl) && !clueHolds(kase, cl, spurious));
       if (!elim) { ok = false; break; }
       kase.clues = [...kase.clues, elim];
     }
-    if (!ok || solve(kase, 2).length !== 1) continue;
+    if (!ok || !valid(kase.clues)) continue;
 
     if (def.minimize) {
       for (let i = kase.clues.length - 1; i >= 0; i--) {
         if (kase.clues[i] === mustRoom) continue;
         const without = kase.clues.filter((_, k) => k !== i);
-        if (solve({ ...kase, clues: without }, 2).length === 1) kase.clues = without;
+        if (valid(without)) kase.clues = without;
       }
     }
     if (def.extra) {
@@ -208,8 +211,11 @@ function findSolution(kase: DeductionCase, rnd: () => number, people: Person[]):
     const rest = suspects.slice(1);
     const place: Placement = { [victimId]: vc, [killer]: kc };
     const usedR = new Set([vc[0], kc[0]]), usedC = new Set([vc[1], kc[1]]), usedRooms = new Set([vroom]);
+    // Budget de recherche par tentative : mieux vaut retirer une autre case victime que s'enliser.
+    let budget = 20000;
     const assign = (i: number): boolean => {
       if (i === rest.length) return true;
+      if (--budget < 0) return false;
       for (const [r, c] of outside) {
         const room = kase.rooms[r][c];
         if (usedR.has(r) || usedC.has(c) || usedRooms.has(room)) continue;

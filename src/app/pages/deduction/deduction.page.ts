@@ -30,6 +30,8 @@ interface CellVm {
   elim: boolean; selectedHere: boolean;
   /** Barrée d'office : ligne ou colonne déjà occupée. */
   autoX: boolean;
+  /** Pièce de la victime, à souligner quand le meurtrier y manque. */
+  alone: boolean;
 }
 
 type ClueState = 'ok' | 'bad' | 'pending';
@@ -82,7 +84,7 @@ const TINT: Record<string, string> = {
             <button type="button" class="cell"
               [class.blocked]="cell.blocked" [class.conflict]="cell.conflict"
               [class.wall-r]="cell.wallR" [class.wall-b]="cell.wallB"
-              [class.target]="cell.target" [class.taken]="cell.taken" [class.flagged]="!!cell.occupant && flagged().has(cell.occupant)"
+              [class.target]="cell.target" [class.taken]="cell.taken" [class.flagged]="!!cell.occupant && flagged().has(cell.occupant)" [class.alone]="cell.alone"
               [attr.data-r]="cell.r" [attr.data-c]="cell.col"
               [attr.aria-label]="cellLabel(cell)" [attr.tabindex]="cell.r === focusR() && cell.col === focusC() ? 0 : -1"
               (focus)="focusR.set(cell.r); focusC.set(cell.col)"
@@ -343,6 +345,8 @@ const TINT: Record<string, string> = {
     .gain { margin: 0 0 4px; color: var(--mk-success-text); font-weight: 700; font-size: .9rem; }
     .cell.flagged::after { content: ''; position: absolute; inset: 1px; z-index: 4; border-radius: 4px; pointer-events: none;
       box-shadow: inset 0 0 0 3px #eb445a; animation: glow 0.8s ease-in-out infinite; }
+    .cell.alone::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+      background: #eb445a33; box-shadow: inset 0 0 0 2px #eb445a; animation: glow 1.2s ease-in-out infinite; }
     .nudge { max-width: 420px; margin: 0 auto 8px; text-align: center; color: var(--mk-gold-text); font-size: 12.5px; }
     .nudge button { margin-left: 6px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #d4af3722;
       color: var(--gold); font-weight: 700; font-size: .8rem; }
@@ -788,6 +792,9 @@ export class DeductionPage implements OnInit, OnDestroy {
     const { rows, cols } = this.takenLines();
     const guiding = !!sel && !notes;
     const closed = this.closedRooms();
+    const victim = c.people.find((p) => p.victim);
+    const vp = victim && this.game.victimAlone() ? this.game.placement()[victim.id] : null;
+    const aloneRoom = vp ? c.rooms[vp[0]][vp[1]] : null;
     const out: CellVm[] = [];
     for (let r = 0; r < c.n; r++) {
       for (let col = 0; col < c.n; col++) {
@@ -809,6 +816,7 @@ export class DeductionPage implements OnInit, OnDestroy {
           target: guiding && !blocked && !occ && !lineTaken && !elim,
           elim, selectedHere: !!occ && occ === sel,
           autoX: !blocked && !occ && lineTaken,
+          alone: room === aloneRoom,
         });
       }
     }
