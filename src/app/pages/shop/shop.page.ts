@@ -3,7 +3,7 @@ import { AlertController, IonBackButton, IonButtons, IonContent, IonHeader, IonT
 import { AnnouncerService } from '../../core/services/announcer.service';
 import { AudioService } from '../../core/services/audio.service';
 import { FeedbackService } from '../../core/services/feedback.service';
-import { ProgressService, SHOP, ShopItem } from '../../core/services/progress.service';
+import { ProgressService, SHOP, ShopItem, formatTime } from '../../core/services/progress.service';
 
 /** Boutique : échange des étoiles contre des indices, des loupes et des cadres. */
 @Component({
@@ -21,16 +21,18 @@ import { ProgressService, SHOP, ShopItem } from '../../core/services/progress.se
       <div class="mk-wrap">
         <section class="wallet" aria-label="Porte-monnaie">
           <p class="bal"><span aria-hidden="true">★</span> {{ progress.balance() }} <small>étoile{{ progress.balance() > 1 ? 's' : '' }}</small></p>
-          <p class="inv">💡 {{ progress.inventory().hints }} indice{{ progress.inventory().hints > 1 ? 's' : '' }}
+          <p class="inv">⚡ {{ progress.energy() }} énergie{{ progress.energy() > 1 ? 's' : '' }}
+            @if (progress.energyNextMs()) { <small>(+1 dans {{ fmt(progress.energyNextMs()) }})</small> }
+            · 💡 {{ progress.inventory().hints }} indice{{ progress.inventory().hints > 1 ? 's' : '' }}
             · 🔍 {{ progress.inventory().loupes }} loupe{{ progress.inventory().loupes > 1 ? 's' : '' }}</p>
-          <p class="mk-muted">Chaque affaire rapporte jusqu'à 3 étoiles selon ta rapidité. Rejouer une affaire plus vite rapporte la différence.</p>
+          <p class="mk-muted">Chaque affaire rapporte jusqu'à 3 étoiles selon ta rapidité. Chaque enquête coûte 1 ⚡ ; l'énergie se recharge seule jusqu'à 5, à raison de 1 toutes les 10 minutes.</p>
         </section>
 
         <section class="mk-card">
           <h2>Aides</h2>
           @for (it of aids; track it.id) {
             <div class="item">
-              <span class="ico" aria-hidden="true">{{ it.kind === 'hints' ? '💡' : '🔍' }}</span>
+              <span class="ico" aria-hidden="true">{{ it.kind === 'hints' ? '💡' : it.kind === 'energy' ? '⚡' : '🔍' }}</span>
               <span class="txt"><b>{{ it.name }}</b><small>{{ it.desc }}</small></span>
               <button type="button" class="buy" [disabled]="progress.balance() < it.price" (click)="buy(it)"
                 [attr.aria-label]="'Acheter ' + it.name + ' pour ' + it.price + ' étoiles'">{{ it.price }} ★</button>
@@ -89,6 +91,7 @@ export class ShopPage {
   readonly aids = SHOP.filter((s) => s.kind !== 'frame');
   readonly frames = SHOP.filter((s) => s.kind === 'frame');
   readonly msg = signal('');
+  fmt(ms: number): string { return formatTime(ms); }
 
   async ionViewWillEnter(): Promise<void> { await this.progress.load(); }
   ionViewDidEnter(): void { this.audio.playMusic('menu'); }

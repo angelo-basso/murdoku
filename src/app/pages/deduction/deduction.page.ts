@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { PrivacyScreen } from '@capacitor-community/privacy-screen';
 import {
   IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar, NavController,
 } from '@ionic/angular/standalone';
@@ -15,7 +16,7 @@ import { Clue, DeductionCase, Difficulty, LevelDef } from '../../core/models/ded
 import { DeductionGameService } from '../../core/services/deduction-game.service';
 import { DeductionGeneratorService } from '../../core/services/deduction-generator.service';
 import { DeductionSolverService } from '../../core/services/deduction-solver.service';
-import { ProgressService, STAR_TIMES, caseFingerprint, formatTime, starsFor } from '../../core/services/progress.service';
+import { ENERGY_MAX, ProgressService, STAR_TIMES, WinResult, caseFingerprint, formatTime, starsFor } from '../../core/services/progress.service';
 
 interface CellVm {
   r: number; col: number;
@@ -183,6 +184,16 @@ const TINT: Record<string, string> = {
       @if (error()) {
         <div class="loading"><p>{{ error() }}</p><ion-button (click)="goHome()">Retour</ion-button></div>
       }
+      @if (noEnergy()) {
+        <div class="loading" role="alert">
+          <p class="big-ico" aria-hidden="true">⚡</p>
+          <h2>Plus d'énergie</h2>
+          <p>Chaque enquête coûte 1 énergie. Laisse reposer tes méninges :
+            @if (progress.energyNextMs()) { +1 dans <b>{{ fmt(progress.energyNextMs()) }}</b> (jusqu'à {{ energyMax }}). }</p>
+          <ion-button (click)="openShop()">Boutique</ion-button>
+          <ion-button fill="clear" (click)="goHome()">Retour</ion-button>
+        </div>
+      }
 
       @if (game.paused() && !game.culprit()) {
         <div class="pause-overlay">
@@ -218,6 +229,10 @@ const TINT: Record<string, string> = {
                 @for (i of [1, 2, 3]; track i) { <span [class.off]="i > res.stars" [style.animation-delay.s]="i * 0.18">★</span> }
               </p>
               @if (res.gained) { <p class="gain">+{{ res.gained }} étoile{{ res.gained > 1 ? 's' : '' }} · solde {{ progress.balance() }} ★</p> }
+              @if (res.energy) {
+                <p class="gain energy">⚡ +{{ res.energy }} énergie{{ res.energy > 1 ? 's' : '' }}
+                  {{ res.energyWhy === 'eclair' ? '— résolution éclair !' : '— un coup de chance !' }}</p>
+              }
             }
             <p class="ptime">⏱ {{ time() }}@if (bestTime()) { <small> · record {{ bestTime() }}</small> }</p>
             <div class="acts">
@@ -225,7 +240,8 @@ const TINT: Record<string, string> = {
                 <ion-button expand="block" (click)="openLevel(nx.id)">Affaire suivante ({{ nx.index }}/20)</ion-button>
               }
               <ion-button expand="block" [fill]="nextLevel() ? 'outline' : 'solid'" (click)="goHome()">{{ level ? 'Retour aux affaires' : 'Retour' }}</ion-button>
-              <ion-button expand="block" fill="clear" (click)="resetAll()">Rejouer</ion-button>
+              <ion-button expand="block" fill="clear" (click)="replay()">Rejouer (1 ⚡)</ion-button>
+              @if (noEnergyReplay()) { <p class="gain warn" role="alert">Plus d'énergie : +1 dans {{ fmt(progress.energyNextMs()) }}.</p> }
             </div>
           </div>
         </div>
@@ -321,6 +337,9 @@ const TINT: Record<string, string> = {
     .stars-big { margin: 2px 0 0; font-size: 2.1rem; color: var(--mk-gold-text); letter-spacing: 6px; }
     .stars-big span { display: inline-block; animation: starpop .45s cubic-bezier(.3,1.6,.6,1) both; }
     @keyframes starpop { from { transform: scale(0); opacity: 0; } }
+    .gain.energy { color: var(--mk-gold-text); }
+    .gain.warn { color: var(--mk-danger-text); font-weight: 600; }
+    .big-ico { font-size: 2.6rem; margin: 0; }
     .gain { margin: 0 0 4px; color: var(--mk-success-text); font-weight: 700; font-size: .9rem; }
     .cell.flagged::after { content: ''; position: absolute; inset: 1px; z-index: 4; border-radius: 4px; pointer-events: none;
       box-shadow: inset 0 0 0 3px #eb445a; animation: glow 0.8s ease-in-out infinite; }
@@ -411,7 +430,12 @@ export class DeductionPage implements OnInit, OnDestroy {
   /** Affaire d'initiation : indices et loupes gratuits, pas de note. */
   tutorial = false;
   private difficulty: Difficulty = 'facile';
-  readonly result = signal<{ stars: number; gained: number } | null>(null);
+  readonly result = signal<WinResult | null>(null);
+  readonly noEnergy = signal(false);
+  /** Indice ou loupe utilisé pendant la partie : pas de bonus « éclair ». */
+  private helped = false;
+  readonly energyMax = ENERGY_MAX;
+  fmt(ms: number): string { return formatTime(ms); }
   readonly flagged = signal<Set<string>>(new Set());
   readonly shopNudge = signal('');
   private recorded: string | null = null;
@@ -467,7 +491,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     // Erreur : nouveau conflit ou indice contredit.
     let lastErr = 0;
     effect(() => {
-      const err = this.game.conflicts().size + this.badClues();
+      const err = this.game.conflicts().size + this.badClues() + (this.game.victimAlone() ? 1 : 0);
       if (err > lastErr && !this.loading() && this.owns()) {
         this.feedback.emit('error');
         untracked(() => this.announcer.say(this.errorText()));
@@ -488,7 +512,7 @@ export class DeductionPage implements OnInit, OnDestroy {
       this.feedback.emit('win');
       const ms = untracked(() => this.game.elapsed());
       const kind = this.level ? 'level' : this.tutorial ? 'tutorial' : 'custom';
-      const res = this.progress.recordWin(c.id, ms, kind, this.difficulty);
+      const res = this.progress.recordWin(c.id, ms, kind, this.difficulty, this.helped);
       this.result.set(kind === 'tutorial' ? null : res);
       this.announcer.alert(`Affaire résolue ! Le coupable est ${culprit.name}. Temps : ${formatTime(ms)}.`
         + (kind !== 'tutorial' ? ` ${res.stars} étoile${res.stars > 1 ? 's' : ''} sur 3${res.gained ? `, ${res.gained} gagnée${res.gained > 1 ? 's' : ''}` : ''}.` : ''));
@@ -517,6 +541,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     const bad = this.clueStates().filter((x) => x.state === 'bad').map((x) => x.text);
     const names = [...this.game.conflicts()].map((id) => c.people.find((p) => p.id === id)?.name).filter(Boolean);
     if (names.length) return `Attention : ${names.join(' et ')} partagent une ligne, une colonne ou une pièce.`;
+    if (this.game.victimAlone()) return 'La victime ne peut pas être seule : son meurtrier est forcément dans sa pièce.';
     return bad.length ? `Indice contredit : ${bad[0]}` : 'Erreur.';
   }
 
@@ -623,12 +648,23 @@ export class DeductionPage implements OnInit, OnDestroy {
     this.audio.playMusic(this.music);
     let saved = this.progress.getSave(c.id);
     if (saved && saved.fp !== caseFingerprint(c)) { this.progress.clearSave(c.id); saved = null; } // niveau modifié depuis
+    // Lancer une nouvelle enquête coûte 1 énergie (reprendre une partie ou l'initiation : gratuit).
+    if (!saved && !this.tutorial && !this.progress.spendEnergy()) {
+      this.loading.set(false);
+      this.noEnergy.set(true);
+      this.announcer.say('Plus d\'énergie. Reviens dans quelques minutes ou passe par la boutique.');
+      return;
+    }
     this.session = this.game.start(c, saved ?? undefined);
     if (saved) this.struck.set(new Set(saved.struck));
     this.loading.set(false);
   }
 
-  ionViewDidEnter(): void { if (this.game.currentCase()) this.audio.playMusic(this.music); }
+  ionViewDidEnter(): void {
+    if (this.game.currentCase()) this.audio.playMusic(this.music);
+    void PrivacyScreen.enable().catch(() => { /* web : sans effet */ });
+  }
+  ionViewWillLeave(): void { void PrivacyScreen.disable().catch(() => { /* web */ }); }
 
   ngOnDestroy(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
@@ -844,11 +880,12 @@ export class DeductionPage implements OnInit, OnDestroy {
     if (this.badClues()) return `${this.badClues()} indice${this.badClues() > 1 ? 's' : ''} non respecté${this.badClues() > 1 ? 's' : ''} (en rouge).`;
     if (sel && this.game.isPlaced(sel)) return `${name} : touche une autre case pour le déplacer.`;
     if (sel) return `${name} : touche une case dorée, ou fais glisser le portrait.`;
+    if (this.game.victimAlone()) return 'La victime ne peut pas être seule : son meurtrier est forcément dans sa pièce.';
     if (this.placedCount() === c.people.length) return 'Tout le monde est placé… vérifie les indices.';
     if (this.placedCount()) return 'Choisis un personnage, puis une case. Touche un portrait posé pour le déplacer.';
     return 'Choisis un personnage, puis une case.';
   });
-  readonly statusWarn = computed(() => !this.game.notesMode() && (this.game.conflicts().size > 0 || this.badClues() > 0));
+  readonly statusWarn = computed(() => !this.game.notesMode() && (this.game.conflicts().size > 0 || this.badClues() > 0 || this.game.victimAlone()));
 
   /** Lecture complète d'une case pour les lecteurs d'écran. */
   cellLabel(cell: CellVm): string {
@@ -911,6 +948,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     if (!this.tutorial && this.progress.inventory().hints <= 0) { this.nudge('Plus d\'indice en réserve.'); return; }
     if (!this.game.hint()) { this.announcer.say('Tout le monde est déjà bien placé.'); return; }
     if (!this.tutorial) this.progress.use('hints');
+    this.helped = true;
     this.feedback.emit('hint');
     this.shopNudge.set('');
   }
@@ -921,6 +959,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     const c = this.game.currentCase();
     if (!c || !this.placedCount()) { this.announcer.say('Pose d\'abord des personnes à vérifier.'); return; }
     if (!this.tutorial) this.progress.use('loupes');
+    this.helped = true;
     const wrong = this.game.wrongPlaced();
     this.flagged.set(new Set(wrong));
     setTimeout(() => this.flagged.set(new Set()), 3500);
@@ -950,9 +989,23 @@ export class DeductionPage implements OnInit, OnDestroy {
     if (s.has(i)) s.delete(i); else s.add(i);
     this.struck.set(s);
   }
+  /** Rejouer une affaire résolue : c'est une nouvelle enquête, elle coûte 1 énergie. */
+  replay(): void {
+    if (!this.tutorial && !this.progress.spendEnergy()) {
+      this.feedback.emit('error');
+      this.announcer.say('Plus d\'énergie pour rejouer tout de suite.');
+      this.noEnergyReplay.set(true);
+      return;
+    }
+    this.noEnergyReplay.set(false);
+    this.resetAll();
+  }
+  readonly noEnergyReplay = signal(false);
+
   resetAll(): void {
     this.game.reset();
     this.recorded = null;
+    this.helped = false;
     this.result.set(null);
     this.struck.set(new Set());
     const c = this.game.currentCase();

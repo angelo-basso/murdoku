@@ -187,11 +187,21 @@ export class DeductionGameService {
     return !!c && c.people.every((p) => place[p.id]);
   });
 
-  /** Affaire résolue : tout placé, sans conflit, tous les indices satisfaits. */
+  /** Tout placé, sans conflit, indices satisfaits… mais la victime est seule dans sa pièce. */
+  readonly victimAlone = computed(() => {
+    const c = this.caseSig();
+    if (!c || !this.allPlaced() || this.conflicts().size > 0) return false;
+    return this.solver.allCluesSatisfied(c, this.placeSig()) && !this.solver.culprit(c, this.placeSig());
+  });
+
+  /**
+   * Affaire résolue : tout placé, sans conflit, tous les indices satisfaits, et le meurtrier
+   * partage la pièce de la victime (sans lui, le jeu restait bloqué sans écran de victoire).
+   */
   readonly solved = computed(() => {
     const c = this.caseSig();
     if (!c || !this.allPlaced() || this.conflicts().size > 0) return false;
-    return this.solver.allCluesSatisfied(c, this.placeSig());
+    return this.solver.allCluesSatisfied(c, this.placeSig()) && !!this.solver.culprit(c, this.placeSig());
   });
 
   readonly culprit = computed(() => {

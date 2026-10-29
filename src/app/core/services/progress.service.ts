@@ -36,6 +36,9 @@ interface ProgressState {
   /** Cadres de plateau possédés et cadre actif. */
   frames: string[];
   frame: string;
+  /** Énergie (1 par enquête lancée) et instant de référence de la recharge. */
+  energy: number;
+  energyAt: number;
 }
 
 const KEY = 'murdoku:progress:v1';
@@ -43,6 +46,13 @@ export const LEVELS_PER_DIFFICULTY = 20;
 /** Affaires à réussir dans une difficulté pour ouvrir la suivante. */
 export const LEVELS_TO_UNLOCK_NEXT = 5;
 export const START_HINTS = 3;
+/** Énergie : plafond de la recharge automatique (on peut le dépasser via bonus et boutique). */
+export const ENERGY_MAX = 5;
+export const ENERGY_REGEN_MS = 10 * 60_000;
+/** Chance de gagner 1 énergie à chaque victoire. */
+export const ENERGY_LUCK = 0.25;
+/** Bonus « éclair » : première réussite en moins de la moitié du temps des 3 étoiles. */
+export const ENERGY_FAST_BONUS = 5;
 export const DIFF_ORDER: Difficulty[] = ['facile', 'moyen', 'intermediaire', 'difficile', 'expert'];
 
 /** Barème : 3 étoiles sous `three`, 2 étoiles sous `two` (en minutes), sinon 1. */
@@ -62,7 +72,7 @@ export function starsFor(d: Difficulty, ms: number): number {
 /** Article de la boutique. */
 export interface ShopItem {
   id: string;
-  kind: 'hints' | 'loupes' | 'frame';
+  kind: 'hints' | 'loupes' | 'frame' | 'energy';
   name: string;
   desc: string;
   price: number;
@@ -75,6 +85,8 @@ export const DEFAULT_FRAME = 'or';
 export const SHOP: ShopItem[] = [
   { id: 'hint-1', kind: 'hints', qty: 1, price: 3, name: '1 indice', desc: 'Place correctement une personne.' },
   { id: 'hint-5', kind: 'hints', qty: 5, price: 12, name: '5 indices', desc: 'Le lot avantageux.' },
+  { id: 'energy-3', kind: 'energy', qty: 3, price: 4, name: '3 énergies', desc: 'Pour lancer 3 enquêtes de plus tout de suite.' },
+  { id: 'energy-10', kind: 'energy', qty: 10, price: 12, name: '10 énergies', desc: 'Peut dépasser le plafond de recharge.' },
   { id: 'loupe-1', kind: 'loupes', qty: 1, price: 2, name: '1 loupe', desc: 'Signale les personnes mal placées, sans dire où les mettre.' },
   { id: 'loupe-5', kind: 'loupes', qty: 5, price: 8, name: '5 loupes', desc: 'Pour les enquêtes coriaces.' },
   { id: 'or', kind: 'frame', price: 0, color: '#d4af37', name: 'Cadre doré', desc: 'Le cadre classique.' },
@@ -86,7 +98,25 @@ export const SHOP: ShopItem[] = [
 
 const EMPTY: ProgressState = {
   done: {}, custom: {}, saves: {}, inv: { hints: START_HINTS, loupes: 0 }, spent: 0, frames: [DEFAULT_FRAME], frame: DEFAULT_FRAME,
+  energy: ENERGY_MAX, energyAt: 0,
 };
+
+/** Recharge : +1 par période écoulée, seulement sous le plafond. */
+function regen(s: ProgressState, now: number): ProgressState {
+  if (s.energy >= ENERGY_MAX) return s.energyAt === now ? s : { ...s, energyAt: now };
+  const n = Math.floor((now - s.energyAt) / ENERGY_REGEN_MS);
+  if (n <= 0) return s;
+  const energy = Math.min(ENERGY_MAX, s.energy + n);
+  return { ...s, energy, energyAt: energy >= ENERGY_MAX ? now : s.energyAt + n * ENERGY_REGEN_MS };
+}
+
+export interface WinResult {
+  stars: number;
+  gained: number;
+  /** Énergie offerte et pourquoi. */
+  energy: number;
+  energyWhy: '' | 'chance' | 'eclair';
+}
 
 const diffOf = (id: string) => id.split('-')[0] as Difficulty;
 const indexOf = (id: string) => +id.split('-')[1];
@@ -96,6 +126,23 @@ export const levelId = (d: Difficulty, i: number) => `${d}-${String(i).padStart(
 export class ProgressService {
   private readonly state = signal<ProgressState>(EMPTY);
   private loaded: Promise<void> | null = null;
+  private readonly now = signal(Date.now());
+
+  readonly energy = computed(() => this.state().energy);
+  /** Temps avant la prochaine recharge (0 si au plafond). */
+  readonly energyNextMs = computed(() => {
+    const s = this.state();
+    return s.energy >= ENERGY_MAX ? 0 : Math.max(0, ENERGY_REGEN_MS - (this.now() - s.energyAt));
+  });
+
+  constructor() {
+    setInterval(() => {
+      const now = Date.now();
+      this.now.set(now);
+      const s = this.state(), next = regen(s, now);
+      if (next.energy !== s.energy) { this.state.set(next); this.persist(); }
+    }, 1000);
+  }
 
   readonly done = computed(() => this.state().done);
   readonly inventory = computed(() => this.state().inv);
@@ -121,7 +168,8 @@ export class ProgressService {
         const s: ProgressState = { ...EMPTY, ...raw, inv: { ...EMPTY.inv, ...raw.inv } };
         // Anciennes réussites sans note : calculée depuis le meilleur temps.
         for (const [id, d] of Object.entries(s.done)) d.stars ??= starsFor(diffOf(id), d.bestMs);
-        this.state.set(s);
+        if (raw.energy === undefined) { s.energy = ENERGY_MAX; s.energyAt = Date.now(); }
+        this.state.set(regen(s, Date.now()));
       } catch { /* données corrompues : on repart de zéro */ }
     });
     return this.loaded;
@@ -153,10 +201,33 @@ export class ProgressService {
     return i <= 1 || !!this.state().done[levelId(d, i - 1)];
   }
 
-  /** Enregistre une victoire ; renvoie la note et les étoiles nouvellement gagnées. */
-  recordWin(caseId: string, elapsedMs: number, kind: 'level' | 'custom' | 'tutorial', difficulty: Difficulty): { stars: number; gained: number } {
+  /** Lance une enquête : coûte 1 énergie ; false s'il n'en reste plus. */
+  spendEnergy(): boolean {
+    const s = regen(this.state(), Date.now());
+    if (s.energy <= 0) { this.state.set(s); return false; }
+    // Repasser sous le plafond démarre le minuteur de recharge.
+    this.state.set({ ...s, energy: s.energy - 1, energyAt: s.energy >= ENERGY_MAX ? Date.now() : s.energyAt });
+    this.persist();
+    return true;
+  }
+
+  grantEnergy(n: number): void {
+    if (n <= 0) return;
+    this.state.update((s) => ({ ...regen(s, Date.now()), energy: regen(s, Date.now()).energy + n }));
+    this.persist();
+  }
+
+  /** Enregistre une victoire ; renvoie la note, les étoiles gagnées et l'énergie offerte. */
+  recordWin(caseId: string, elapsedMs: number, kind: 'level' | 'custom' | 'tutorial', difficulty: Difficulty, helped = false): WinResult {
     const stars = starsFor(difficulty, elapsedMs);
     let gained = 0;
+    // Bonus d'énergie : « éclair » la première fois (moins de la moitié du temps des 3 étoiles), sinon un peu de chance.
+    const firstTime = kind === 'level' ? !this.state().done[caseId] : kind === 'custom' && this.state().custom[caseId] === undefined;
+    let energy = 0, energyWhy: WinResult['energyWhy'] = '';
+    if (kind !== 'tutorial') {
+      if (firstTime && !helped && elapsedMs <= STAR_TIMES[difficulty].three * 60000 / 2) { energy = ENERGY_FAST_BONUS; energyWhy = 'eclair'; }
+      else if (Math.random() < ENERGY_LUCK) { energy = 1; energyWhy = 'chance'; }
+    }
     this.state.update((s) => {
       const done = { ...s.done }, custom = { ...s.custom };
       if (kind === 'level') {
@@ -172,7 +243,8 @@ export class ProgressService {
       return { ...s, done, custom, saves, last: s.last === caseId ? undefined : s.last };
     });
     this.persist();
-    return { stars, gained };
+    this.grantEnergy(energy);
+    return { stars, gained, energy, energyWhy };
   }
 
   /** Consomme un objet ; false s'il n'en reste plus. */
@@ -190,6 +262,7 @@ export class ProgressService {
     this.state.update((s) => {
       const next = { ...s, spent: s.spent + item.price };
       if (item.kind === 'frame') return { ...next, frames: [...s.frames, item.id], frame: item.id };
+      if (item.kind === 'energy') { const r = regen(next, Date.now()); return { ...r, energy: r.energy + (item.qty ?? 1) }; }
       return { ...next, inv: { ...s.inv, [item.kind]: s.inv[item.kind] + (item.qty ?? 1) } };
     });
     this.persist();

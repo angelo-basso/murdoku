@@ -5,7 +5,7 @@ import { THEME_LIST } from '../../core/data/deduction-themes';
 import { DIFFICULTIES, parseCode, shareCode } from '../../core/engine/generator';
 import { Difficulty } from '../../core/models/deduction.models';
 import { AudioService } from '../../core/services/audio.service';
-import { LEVELS_PER_DIFFICULTY, ProgressService } from '../../core/services/progress.service';
+import { ENERGY_MAX, LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/services/progress.service';
 
 /** Affaires générées à l'infini et codes partagés (débloqué par une difficulté terminée). */
 @Component({
@@ -21,6 +21,11 @@ import { LEVELS_PER_DIFFICULTY, ProgressService } from '../../core/services/prog
     </ion-header>
     <ion-content class="ion-padding mk-page">
       <div class="mk-wrap">
+        <p class="energy-line" [attr.aria-label]="'Énergie ' + progress.energy() + ' sur ' + energyMax + (progress.energyNextMs() ? ', une de plus dans ' + fmt(progress.energyNextMs()) : '')">
+          ⚡ <b>{{ progress.energy() }}</b>/{{ energyMax }}
+          @if (progress.energyNextMs()) { <small>· +1 dans {{ fmt(progress.energyNextMs()) }}</small> }
+          <small>· 1 ⚡ par enquête</small>
+        </p>
         <section class="mk-card" aria-labelledby="gen-title">
           <h2 id="gen-title">Générer une affaire</h2>
           <p class="mk-muted">Des affaires inédites à l'infini, chacune avec une solution unique et partageable par code.</p>
@@ -61,6 +66,8 @@ import { LEVELS_PER_DIFFICULTY, ProgressService } from '../../core/services/prog
     </ion-content>
   `,
   styles: [`
+    .energy-line { margin: 0 0 10px; text-align: center; font-size: .9rem; color: var(--mk-gold-text); }
+    .energy-line small { color: var(--mk-muted); font-size: .78rem; }
     .lbl { margin: 14px 0 6px; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-dim); font-weight: 600; }
     .codebox { display: flex; gap: 8px; }
     .codebox input { flex: 1; min-width: 0; min-height: 46px; background: #0003; border: 1px solid var(--mk-border); border-radius: 11px;
@@ -73,7 +80,9 @@ import { LEVELS_PER_DIFFICULTY, ProgressService } from '../../core/services/prog
 })
 export class CustomPage implements OnInit, ViewDidEnter {
   private router = inject(Router);
-  private progress = inject(ProgressService);
+  readonly progress = inject(ProgressService);
+  readonly energyMax = ENERGY_MAX;
+  fmt(ms: number): string { return formatTime(ms); }
   private audio = inject(AudioService);
 
   readonly difficulties = DIFFICULTIES;
@@ -98,6 +107,7 @@ export class CustomPage implements OnInit, ViewDidEnter {
 
   newGame(): void {
     if (!this.unlocked(this.diff())) return;
+    if (this.progress.energy() <= 0) { this.codeError.set(`Plus d'énergie : +1 dans ${formatTime(this.progress.energyNextMs())}.`); return; }
     const seed = Math.random().toString(36).slice(2, 8);
     const size = DIFFICULTIES.find((d) => d.id === this.diff())!.size;
     this.router.navigate(['/deduction/gen', shareCode({ themeId: this.theme(), size, difficulty: this.diff(), seed })]);

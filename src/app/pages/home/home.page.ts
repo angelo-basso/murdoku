@@ -18,7 +18,8 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
         <h1 class="sr-only">Murdoku, Sudoku d'enquête</h1>
         <img class="logo" src="assets/brand/logo.svg" alt="" />
         <p class="tagline">Placez les suspects d'après les indices et démasquez le coupable.</p>
-        <p class="wallet" [attr.aria-label]="progress.balance() + ' étoiles, ' + progress.inventory().hints + ' indices, ' + progress.inventory().loupes + ' loupes'">
+        <p class="wallet" [attr.aria-label]="progress.energy() + ' énergies, ' + progress.balance() + ' étoiles, ' + progress.inventory().hints + ' indices, ' + progress.inventory().loupes + ' loupes'">
+          <span>⚡ {{ progress.energy() }}@if (progress.energyNextMs()) {<small class="tick"> {{ fmt(progress.energyNextMs()) }}</small>}</span>
           <span>★ {{ progress.balance() }}</span><span>💡 {{ progress.inventory().hints }}</span><span>🔍 {{ progress.inventory().loupes }}</span>
         </p>
 
@@ -48,7 +49,7 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
 
           <button type="button" class="entry" (click)="router.navigate(['/boutique'])">
             <ion-icon name="cart-outline" aria-hidden="true"></ion-icon>
-            <span class="txt"><b>Boutique</b><small>Échange tes étoiles : indices, loupes, cadres</small></span>
+            <span class="txt"><b>Boutique</b><small>Échange tes étoiles : énergie, indices, loupes, cadres</small></span>
             <ion-icon class="go" name="chevron-forward" aria-hidden="true"></ion-icon>
           </button>
 
@@ -80,6 +81,7 @@ import { LEVELS_PER_DIFFICULTY, ProgressService, formatTime } from '../../core/s
     .txt b { font: 600 1.05rem Georgia, serif; }
     .txt small { color: var(--mk-muted); font-size: .8rem; line-height: 1.3; }
     .wallet { display: flex; justify-content: center; gap: 16px; margin: -8px 0 16px; color: var(--mk-gold-text); font-weight: 700; font-size: .95rem; }
+    .wallet .tick { font-size: .7rem; color: var(--mk-muted); font-weight: 500; }
     .menu { display: flex; flex-direction: column; gap: 10px; }
     .entry { min-height: 72px; background: var(--ion-card-background); border: 1px solid var(--mk-border); }
     .entry:active { transform: scale(.98); }

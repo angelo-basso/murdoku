@@ -5,7 +5,7 @@ import { THEME_LIST } from '../../core/data/deduction-themes';
 import { DIFFICULTIES } from '../../core/engine/generator';
 import { Difficulty } from '../../core/models/deduction.models';
 import { AudioService } from '../../core/services/audio.service';
-import { DIFF_ORDER, LEVELS_PER_DIFFICULTY, LEVELS_TO_UNLOCK_NEXT, ProgressService, STAR_TIMES, formatTime } from '../../core/services/progress.service';
+import { DIFF_ORDER, ENERGY_MAX, LEVELS_PER_DIFFICULTY, LEVELS_TO_UNLOCK_NEXT, ProgressService, STAR_TIMES, formatTime } from '../../core/services/progress.service';
 
 /** Les 100 affaires prédéfinies, par difficulté. */
 @Component({
@@ -21,6 +21,11 @@ import { DIFF_ORDER, LEVELS_PER_DIFFICULTY, LEVELS_TO_UNLOCK_NEXT, ProgressServi
     </ion-header>
     <ion-content class="ion-padding mk-page">
       <div class="mk-wrap">
+        <p class="energy-line" [attr.aria-label]="'Énergie ' + progress.energy() + ' sur ' + energyMax + (progress.energyNextMs() ? ', une de plus dans ' + fmt(progress.energyNextMs()) : '')">
+          ⚡ <b>{{ progress.energy() }}</b>/{{ energyMax }}
+          @if (progress.energyNextMs()) { <small>· +1 dans {{ fmt(progress.energyNextMs()) }}</small> }
+          <small>· 1 ⚡ par enquête</small>
+        </p>
         <div class="tabs" role="tablist" aria-label="Difficulté">
           @for (d of difficulties; track d.id) {
             <button type="button" role="tab" class="tab" [class.on]="diff() === d.id" [class.locked]="!diffOpen(d.id)" [attr.aria-selected]="diff() === d.id"
@@ -64,6 +69,8 @@ import { DIFF_ORDER, LEVELS_PER_DIFFICULTY, LEVELS_TO_UNLOCK_NEXT, ProgressServi
     </ion-content>
   `,
   styles: [`
+    .energy-line { margin: 0 0 10px; text-align: center; font-size: .9rem; color: var(--mk-gold-text); }
+    .energy-line small { color: var(--mk-muted); font-size: .78rem; }
     .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; scrollbar-width: none; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { flex: 1 0 auto; min-width: 84px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -96,7 +103,7 @@ import { DIFF_ORDER, LEVELS_PER_DIFFICULTY, LEVELS_TO_UNLOCK_NEXT, ProgressServi
 export class ClassicPage implements OnInit, ViewDidEnter {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private progress = inject(ProgressService);
+  readonly progress = inject(ProgressService);
   private audio = inject(AudioService);
 
   readonly difficulties = DIFFICULTIES;
@@ -124,6 +131,8 @@ export class ClassicPage implements OnInit, ViewDidEnter {
   });
 
   readonly toUnlock = LEVELS_TO_UNLOCK_NEXT;
+  readonly energyMax = ENERGY_MAX;
+  fmt(ms: number): string { return formatTime(ms); }
   readonly lockedTap = signal('');
   readonly scale = computed(() => STAR_TIMES[this.diff()]);
   readonly starsHere = computed(() => {
@@ -158,6 +167,10 @@ export class ClassicPage implements OnInit, ViewDidEnter {
       this.lockedTap.set(!this.diffOpen(this.diff())
         ? `Difficulté verrouillée : résous d'abord ${LEVELS_TO_UNLOCK_NEXT} affaires « ${this.prevLabel()} ».`
         : `Affaire ${lv.index} verrouillée : résous d'abord l'affaire ${lv.index - 1}.`);
+      return;
+    }
+    if (!this.progress.getSave(lv.id) && this.progress.energy() <= 0) {
+      this.lockedTap.set(`Plus d'énergie : +1 dans ${formatTime(this.progress.energyNextMs())}, ou passe par la boutique.`);
       return;
     }
     this.lockedTap.set('');
