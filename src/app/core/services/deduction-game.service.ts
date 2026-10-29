@@ -27,8 +27,12 @@ export class DeductionGameService {
   readonly notesMode = this.notesModeSig.asReadonly();
   readonly elim = this.elimSig.asReadonly();
 
-  /** Démarre une affaire, éventuellement depuis une sauvegarde. */
-  start(c: DeductionCase, saved?: { placement: Placement; elim: Record<string, string[]>; elapsedMs: number }): void {
+  /** Numéro de la partie en cours : seul l'écran qui l'a lancée peut l'arrêter. */
+  private session = 0;
+  isSession(token: number): boolean { return token === this.session; }
+
+  /** Démarre une affaire, éventuellement depuis une sauvegarde ; renvoie le jeton de la partie. */
+  start(c: DeductionCase, saved?: { placement: Placement; elim: Record<string, string[]>; elapsedMs: number }): number {
     this.caseSig.set(c);
     const empty = Object.fromEntries(c.people.map((p) => [p.id, null])) as Placement;
     this.placeSig.set(saved ? { ...empty, ...saved.placement } : empty);
@@ -39,6 +43,7 @@ export class DeductionGameService {
     this.elapsedSig.set(saved?.elapsedMs ?? 0);
     this.pausedSig.set(false);
     this.startClock();
+    return ++this.session;
   }
 
   private startClock(): void {
@@ -51,7 +56,12 @@ export class DeductionGameService {
     }, 500);
   }
 
-  stopClock(): void {
+  /**
+   * Arrête le chronomètre. Avec un jeton, ne fait rien si une autre partie a démarré depuis
+   * (ex. « Affaire suivante » : l'ancien écran se ferme après l'ouverture du nouveau).
+   */
+  stopClock(token?: number): void {
+    if (token !== undefined && token !== this.session) return;
     if (this.clock) clearInterval(this.clock);
     this.clock = null;
   }

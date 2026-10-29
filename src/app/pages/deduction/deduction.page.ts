@@ -412,6 +412,9 @@ export class DeductionPage implements OnInit, OnDestroy {
   readonly flagged = signal<Set<string>>(new Set());
   readonly shopNudge = signal('');
   private recorded: string | null = null;
+  /** Jeton de la partie lancée par cet écran (le service de jeu est partagé). */
+  private session = -1;
+  private owns(): boolean { return this.session >= 0 && this.game.isSession(this.session); }
   /** Case qui reçoit le focus clavier (navigation aux flèches). */
   readonly focusR = signal(0);
   readonly focusC = signal(0);
@@ -448,7 +451,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     effect(() => {
       const c = this.game.currentCase();
       const place = this.game.placement();
-      if (!c) return;
+      if (!c || !this.owns()) return;
       if (prevCase !== c.id || this.loading()) { prevCase = c.id; prev = { ...place }; return; }
       for (const p of c.people) {
         const a = prev[p.id], b = place[p.id];
@@ -462,7 +465,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     let lastErr = 0;
     effect(() => {
       const err = this.game.conflicts().size + this.badClues();
-      if (err > lastErr && !this.loading()) {
+      if (err > lastErr && !this.loading() && this.owns()) {
         this.feedback.emit('error');
         untracked(() => this.announcer.say(this.errorText()));
       }
@@ -471,13 +474,13 @@ export class DeductionPage implements OnInit, OnDestroy {
     let lastElim = 0;
     effect(() => {
       const n = Object.values(this.game.elim()).reduce((k, set) => k + set.size, 0);
-      if (n !== lastElim && !this.loading()) this.feedback.emit('note');
+      if (n !== lastElim && !this.loading() && this.owns()) this.feedback.emit('note');
       lastElim = n;
     });
     effect(() => {
       const c = this.game.currentCase();
       const culprit = this.game.culprit();
-      if (!culprit || !c || this.recorded === c.id) return;
+      if (!culprit || !c || this.recorded === c.id || !this.owns()) return;
       this.recorded = c.id;
       this.feedback.emit('win');
       const ms = untracked(() => this.game.elapsed());
@@ -617,7 +620,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     this.audio.playMusic(this.music);
     let saved = this.progress.getSave(c.id);
     if (saved && saved.fp !== caseFingerprint(c)) { this.progress.clearSave(c.id); saved = null; } // niveau modifié depuis
-    this.game.start(c, saved ?? undefined);
+    this.session = this.game.start(c, saved ?? undefined);
     if (saved) this.struck.set(new Set(saved.struck));
     this.loading.set(false);
   }
@@ -625,17 +628,20 @@ export class DeductionPage implements OnInit, OnDestroy {
   ionViewDidEnter(): void { if (this.game.currentCase()) this.audio.playMusic(this.music); }
 
   ngOnDestroy(): void {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    if (!this.owns()) return; // une autre affaire a déjà pris la main
     this.saveNow();
-    this.game.stopClock();
+    this.game.stopClock(this.session);
   }
 
   /** Mise en pause automatique quand l'app passe en arrière-plan. */
   @HostListener('document:visibilitychange')
   onVisibility(): void {
-    if (document.hidden && this.game.currentCase() && !this.game.culprit()) { this.game.pause(); this.saveNow(); }
+    if (document.hidden && this.owns() && !this.game.culprit()) { this.game.pause(); this.saveNow(); }
   }
 
   private saveNow(): void {
+    if (!this.owns()) return;
     const c = this.game.currentCase();
     if (!c || this.loading() || this.game.culprit() || !this.saveRoute.length) return;
     if (!this.placedCount() && this.game.elapsed() < 5000) return; // rien d'intéressant à reprendre
