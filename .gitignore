@@ -24,3 +24,7 @@
 .vscode
 /safezone-check.png
 /.tmp
+
+# Clés de signature : ne jamais les versionner
+*.jks
+*.keystore

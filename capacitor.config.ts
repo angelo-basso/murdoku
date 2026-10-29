@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.murdoku.app',
-  appName: 'Murdoku',
+  appId: 'fr.straswebngine.huisclos',
+  appName: 'Huis Clos',
   webDir: 'www',
   server: {
     androidScheme: 'https',

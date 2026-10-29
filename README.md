@@ -1,6 +1,6 @@
-# 🔍 Murdoku
+# Huis Clos — enquêtes logiques
 
-**Murdoku** est un jeu de réflexion mobile qui mêle **Sudoku** et **enquête policière**.
+**Huis Clos** est un jeu de réflexion mobile qui mêle **Sudoku** et **enquête policière**.
 
 Chaque niveau est une **affaire criminelle** : la grille de Sudoku ne contient
 pas des chiffres mais des **suspects** (icônes). En remplissant correctement la

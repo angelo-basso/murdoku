@@ -1,0 +1,97 @@
+name: Release
+
+# Publie une version officielle signée : pousser un tag vX.Y.Z (ex. git tag v1.0.0 && git push origin v1.0.0).
+# Produit l'APK signé (installation directe) et l'AAB signé (Google Play), attachés à une Release GitHub.
+# Secrets requis (voir docs/RELEASE.md) : ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+# ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: APK + AAB signés
+    runs-on: ubuntu-latest
+    env:
+      KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Vérifier les secrets de signature
+        run: |
+          for v in KS_B64 KS_PASS KEY_ALIAS KEY_PASS; do
+            if [ -z "${!v}" ]; then echo "::error::Secret de signature manquant ($v). Voir docs/RELEASE.md"; exit 1; fi
+          done
+
+      - name: Version depuis le tag
+        id: ver
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          IFS=. read -r MA MI PA <<< "$VERSION"
+          if ! [[ "$MA$MI$PA" =~ ^[0-9]+$ ]]; then echo "::error::Le tag doit être de la forme vX.Y.Z"; exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$((MA * 10000 + MI * 100 + PA))" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+
+      - name: Dépendances et build web
+        run: |
+          npm ci
+          npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version --allow-same-version
+          npm run build
+
+      - name: Projet Android
+        run: |
+          npx cap add android
+          npx @capacitor/assets generate --android
+          npx cap sync android
+          # Numéro de version visible (versionName) et interne croissant (versionCode)
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ steps.ver.outputs.code }}/; s/versionName \"[^\"]*\"/versionName \"${{ steps.ver.outputs.version }}\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
+      - name: Compiler (release)
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease bundleRelease --no-daemon
+
+      - name: Signer
+        run: |
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          BT="$ANDROID_HOME/build-tools/34.0.0"
+          V="${{ steps.ver.outputs.version }}"
+          mkdir -p dist
+          "$BT/zipalign" -p -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/release.jks" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:KS_PASS --key-pass env:KEY_PASS --out "dist/HuisClos-$V.apk" "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" verify --print-certs "dist/HuisClos-$V.apk" | head -3
+          cp android/app/build/outputs/bundle/release/app-release.aab "dist/HuisClos-$V.aab"
+          jarsigner -keystore "$RUNNER_TEMP/release.jks" -storepass "$KS_PASS" -keypass "$KEY_PASS" \
+            -sigalg SHA256withRSA -digestalg SHA-256 "dist/HuisClos-$V.aab" "$KEY_ALIAS"
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Publier la Release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          gh release create "$GITHUB_REF_NAME" dist/* --title "Huis Clos $V" --generate-notes \
+            --notes "Installation : télécharger HuisClos-$V.apk sur le téléphone et l'ouvrir. Les mises à jour s'installent par-dessus. Le fichier .aab est destiné à Google Play."

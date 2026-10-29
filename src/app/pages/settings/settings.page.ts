@@ -1,4 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { App } from '@capacitor/app';
 import {
   IonBackButton, IonButtons, IonContent, IonHeader, IonItem, IonLabel, IonList, IonListHeader, IonNote, IonRange, IonSegment, IonSegmentButton, IonTitle, IonToggle, IonToolbar,
 } from '@ionic/angular/standalone';
@@ -72,12 +73,14 @@ import { Settings, SettingsService } from '../../core/services/settings.service'
           <ion-note class="note">Annonces vocales : chaque coup, erreur et victoire est lu par le lecteur d'écran. Le jeu se joue entièrement avec TalkBack (Android) ou VoiceOver (iOS) : chaque case annonce sa ligne, sa colonne, sa pièce,
             son meuble et son occupant ; chaque coup est décrit à voix haute. Le plan des pièces est lisible après le plateau.</ion-note>
         </ion-list>
+        <p class="version">Huis Clos {{ version() }}</p>
       </div>
     </ion-content>
   `,
   styles: [`
     ion-list { background: transparent; }
     ion-list-header ion-label { font: 600 1rem Georgia, serif; color: var(--ion-color-primary); }
+    .version { text-align: center; color: var(--mk-dim); font-size: .78rem; margin: 8px 0 24px; }
     .note { display: block; padding: 8px 16px 12px; font-size: .8rem; line-height: 1.4; }
   `],
 })
@@ -86,6 +89,8 @@ export class SettingsPage {
   private feedback = inject(FeedbackService);
   private audio = inject(AudioService);
   readonly s = this.settings.settings;
+  readonly version = signal('');
+  constructor() { void App.getInfo().then((i) => this.version.set(`v${i.version}`)).catch(() => this.version.set('web')); }
   readonly current = computed(() => (this.settings.resolvedTheme(this.s().theme) === 'light' ? 'clair' : 'sombre'));
 
   ionViewDidEnter(): void { this.audio.playMusic('menu'); }
