@@ -8,7 +8,6 @@ export const routes: Routes = [
   { path: 'reglages', loadComponent: () => import('./pages/settings/settings.page').then((m) => m.SettingsPage) },
   { path: 'boutique', loadComponent: () => import('./pages/shop/shop.page').then((m) => m.ShopPage) },
   { path: 'regles', loadComponent: () => import('./pages/rules/rules.page').then((m) => m.RulesPage) },
-  { path: 'game/:caseId', loadComponent: () => import('./pages/game/game.page').then((m) => m.GamePage) },
   { path: 'niveau/:id', loadComponent: () => import('./pages/deduction/deduction.page').then((m) => m.DeductionPage) },
   { path: 'deduction/gen/:code', canActivate: [customUnlockedGuard], loadComponent: () => import('./pages/deduction/deduction.page').then((m) => m.DeductionPage) },
   { path: 'deduction/:caseId', loadComponent: () => import('./pages/deduction/deduction.page').then((m) => m.DeductionPage) },

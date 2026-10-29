@@ -1,116 +1,57 @@
 # Huis Clos — enquêtes logiques
 
-**Huis Clos** est un jeu de réflexion mobile qui mêle **Sudoku** et **enquête policière**.
+Un meurtre a été commis. Placez chaque suspect sur le plan de la maison d'après les indices,
+et démasquez le coupable : le seul à partager la pièce de la victime.
 
-Chaque niveau est une **affaire criminelle** : la grille de Sudoku ne contient
-pas des chiffres mais des **suspects** (icônes). En remplissant correctement la
-grille selon les règles classiques du Sudoku, la case marquée d'une **loupe 🔍**
-révèle l'identité du **coupable**.
+- une personne par **ligne**, par **colonne** et par **pièce** (sauf la victime et son meurtrier) ;
+- jamais sur un meuble bloquant ; tous les **indices** doivent être respectés ;
+- 100 affaires sur 5 difficultés (5×5 à 9×9), toutes à solution unique, plus un générateur infini ;
+- 4 décors, 120 personnages pixel-art, étoiles, énergie, boutique, thème clair/sombre,
+  musiques générées, jouable au lecteur d'écran.
 
-- 🧩 Grilles **4×4**, **6×6** et **9×9** (difficulté facile → difficile)
-- 🕵️ Un scénario, une victime et des suspects avec leurs mobiles pour chaque affaire
-- ✏️ Mode notes (annotations au crayon), indices, détection d'erreurs
-- ⏱️ Chronomètre, comptage des erreurs et des indices
-- 💾 Progression sauvegardée automatiquement (reprise de partie)
+**Télécharger l'appli Android** : https://github.com/angelo-basso/murdoku/releases/latest
 
-## Stack technique
+## Stack
 
-- [Angular 18](https://angular.dev) (composants *standalone*, *signals*)
-- [Ionic 8](https://ionicframework.com) pour l'UI mobile
-- [Capacitor 6](https://capacitorjs.com) pour l'empaquetage **iOS / Android**
-- Cible **Web + iOS + Android** à partir d'une seule base de code
+Angular 18 (standalone, signals) · Ionic 8 · Capacitor 6 (Android) · moteur de jeu en
+TypeScript pur (`src/app/core/engine/`, testable sous Node).
 
-## Démarrer en local
+## Développer
 
 ```bash
 npm install
-npm start            # http://localhost:4200 (web)
+npm start                # http://localhost:4200
+npm run check:engine     # valide le générateur (unicité, coupable non révélé, temps)
+npm run levels           # régénère les 100 affaires (src/app/core/data/levels.data.ts)
+node tools/gen-pixel.mjs # régénère personnages et meubles pixel-art
 ```
 
-## Build de production (web)
-
-```bash
-npm run build        # génère le dossier ./www
-```
-
-## Déploiement Docker (serveur auto-hébergé)
-
-L'app est servie en statique par **nginx** (avec fallback SPA). Deux options :
-
-### Option A — construire et lancer localement
-
-```bash
-docker compose up -d --build
-# → http://localhost:8080
-```
-
-ou sans compose :
-
-```bash
-docker build -t murdoku:latest .
-docker run -d -p 8080:80 --name murdoku --restart unless-stopped murdoku:latest
-```
-
-### Option B — utiliser l'image publiée par la CI (GHCR)
-
-Le workflow `.github/workflows/docker-publish.yml` construit et pousse l'image
-sur `ghcr.io/angelo-basso/murdoku` à chaque push sur `main` (et sur les tags `v*`).
-Sur ton serveur :
-
-```bash
-docker login ghcr.io                       # avec un Personal Access Token (scope read:packages)
-docker pull ghcr.io/angelo-basso/murdoku:latest
-docker run -d -p 8080:80 --name murdoku --restart unless-stopped \
-  ghcr.io/angelo-basso/murdoku:latest
-```
-
-> Pour utiliser cette image via `docker compose`, décommente la ligne `image:`
-> (et commente `build: .`) dans `docker-compose.yml`.
-
-Derrière un reverse proxy (Traefik, Nginx Proxy Manager, Caddy…), route
-simplement ton domaine vers le port `80` du conteneur.
-
-## Empaqueter en application mobile
-
-```bash
-# 1) Build web
-npm run build
-
-# 2) Ajouter les plateformes natives (une seule fois)
-npx cap add android
-npx cap add ios
-
-# 3) Synchroniser le web vers le natif puis ouvrir l'IDE
-npx cap sync
-npm run cap:android   # ouvre Android Studio
-npm run cap:ios       # ouvre Xcode (macOS requis)
-```
-
-## Structure du projet
+## Structure
 
 ```
 src/app/
-  core/
-    models/       # types du domaine (affaire, état de partie…)
-    services/     # moteur Sudoku, logique de jeu, stockage
-    data/         # catalogue des affaires (scénarios + suspects)
-  components/
-    board/        # plateau de jeu
-    suspect-pad/  # pavé de sélection des suspects
-  pages/
-    home/         # liste des affaires
-    game/         # écran de jeu + révélation du coupable
+  core/engine/    solveur et générateur d'affaires (sans Angular)
+  core/data/      décors, distributions de personnages, affaires
+  core/services/  partie, progression (étoiles, énergie, boutique), réglages, audio
+  pages/          menu, affaires classiques, sur mesure, partie, boutique, réglages, règles
+tools/            génération des assets et des niveaux
+docs/             publication, politique de confidentialité, fiche du store
 ```
 
-## Comment jouer
+## Versions et publication
 
-1. Choisissez une **affaire** sur l'écran d'accueil.
-2. Remplissez la grille : chaque **suspect** doit apparaître une seule fois par
-   ligne, par colonne et par région — comme au Sudoku.
-3. Utilisez le **mode notes** pour marquer les hypothèses, et les **indices** si
-   vous êtes bloqué·e.
-4. Une fois la grille résolue, la case 🔍 démasque le **coupable** !
+Voir [docs/RELEASE.md](docs/RELEASE.md) : un tag `vX.Y.Z` (ou *Actions › Release › Run workflow*)
+publie un APK et un AAB signés dans une Release GitHub. L'action *Build Android APK* produit un
+APK de test.
+
+## Version web (Docker)
+
+```bash
+docker compose up -d --build                     # http://localhost:8080
+# ou l'image publiée par la CI :
+docker run -d -p 8080:80 --name huis-clos --restart unless-stopped ghcr.io/angelo-basso/huis-clos:latest
+```
 
 ## Licence
 
-MIT
+Code et assets pixel-art créés pour le projet.

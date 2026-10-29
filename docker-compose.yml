@@ -1,11 +1,11 @@
 services:
-  murdoku:
+  huis-clos:
     # Option A — construire l'image localement à partir du Dockerfile :
     build: .
     # Option B — utiliser l'image publiée par la CI (commenter `build` ci-dessus) :
-    # image: ghcr.io/angelo-basso/murdoku:latest
-    image: murdoku:latest
-    container_name: murdoku
+    # image: ghcr.io/angelo-basso/huis-clos:latest
+    image: huis-clos:latest
+    container_name: huis-clos
     ports:
       - "8080:80" # http://localhost:8080
     restart: unless-stopped
