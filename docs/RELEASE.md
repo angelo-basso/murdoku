@@ -18,6 +18,11 @@ du dépôt GitHub (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDR
 
 ## Publier une version
 
+Depuis GitHub : **Actions › Release › Run workflow**, choisir la branche et saisir la version
+(ex. `1.0.1`) : le tag et la Release sont créés automatiquement.
+
+Ou en ligne de commande :
+
 ```bash
 git tag v1.0.0
 git push origin v1.0.0

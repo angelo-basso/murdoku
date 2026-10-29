@@ -1,12 +1,19 @@
 name: Release
 
-# Publie une version officielle signée : pousser un tag vX.Y.Z (ex. git tag v1.0.0 && git push origin v1.0.0).
+# Publie une version officielle signée, au choix :
+#  - pousser un tag vX.Y.Z (ex. git tag v1.0.0 && git push origin v1.0.0) ;
+#  - ou Actions › Release › Run workflow, en saisissant la version (le tag est alors créé sur la branche choisie).
 # Produit l'APK signé (installation directe) et l'AAB signé (Google Play), attachés à une Release GitHub.
 # Secrets requis (voir docs/RELEASE.md) : ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
 # ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version à publier (ex. 1.0.1)'
+        required: true
 
 permissions:
   contents: write
@@ -30,11 +37,12 @@ jobs:
       - name: Version depuis le tag
         id: ver
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -n "${{ inputs.version }}" ]; then VERSION="${{ inputs.version }}"; VERSION="${VERSION#v}"; else VERSION="${GITHUB_REF_NAME#v}"; fi
           IFS=. read -r MA MI PA <<< "$VERSION"
           if ! [[ "$MA$MI$PA" =~ ^[0-9]+$ ]]; then echo "::error::Le tag doit être de la forme vX.Y.Z"; exit 1; fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$((MA * 10000 + MI * 100 + PA))" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
 
@@ -93,5 +101,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V="${{ steps.ver.outputs.version }}"
-          gh release create "$GITHUB_REF_NAME" dist/* --title "Huis Clos $V" --generate-notes \
+          gh release create "${{ steps.ver.outputs.tag }}" dist/* --target "$GITHUB_SHA" --title "Huis Clos $V" --generate-notes \
             --notes "Installation : télécharger HuisClos-$V.apk sur le téléphone et l'ouvrir. Les mises à jour s'installent par-dessus. Le fichier .aab est destiné à Google Play."
