@@ -108,7 +108,21 @@ export function generate(o: GenOptions): DeductionCase | null {
     }
     if (def.extra) {
       const extra = shuffle(rnd, truePool.filter((c) => !kase.clues.includes(c) && (c.t === 'room' || c.t === 'furniture' || c.t === 'nextToFurniture')));
-      kase.clues = [...kase.clues, ...extra.slice(0, def.extra)];
+      let added = 0;
+      for (const cl of extra) {
+        if (added >= def.extra) break;
+        if (!isRedundant(kase, cl, kase.clues)) { kase.clues = [...kase.clues, cl]; added++; }
+      }
+    }
+    // Retire les indices qui n'apprennent rien (ex. « pas dans l'open space » quand on sait
+    // déjà « dans la salle serveurs ») : les solutions restent identiques.
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const cl of [...kase.clues].reverse()) {
+        if (cl === mustRoom) continue;
+        const others = kase.clues.filter((x) => x !== cl);
+        if (isRedundant(kase, cl, others)) { kase.clues = others; changed = true; break; }
+      }
     }
 
     const sols = solve(kase, 2);
@@ -125,6 +139,21 @@ export function generate(o: GenOptions): DeductionCase | null {
     return kase;
   }
   return null;
+}
+
+/**
+ * Un indice est inutile si les autres indices sur la (les) même(s) personne(s)
+ * l'impliquent déjà : il n'élimine aucune case.
+ */
+export function isRedundant(kase: DeductionCase, cl: Clue, others: Clue[]): boolean {
+  const k = { ...kase, clues: others };
+  if (cl.who) return candidates(k, cl.who).every(([r, col]) => clueHolds({ ...kase, clues: [cl] }, cl, { [cl.who!]: [r, col] }));
+  if (cl.a && cl.b) {
+    const ca = candidates(k, cl.a), cb = candidates(k, cl.b);
+    return ca.every(([r1, c1]) => cb.every(([r2, c2]) =>
+      r1 === r2 || c1 === c2 || clueHolds(kase, cl, { [cl.a!]: [r1, c1], [cl.b!]: [r2, c2] })));
+  }
+  return false;
 }
 
 /** Indices interdits : ils désigneraient le coupable sans déduction. */

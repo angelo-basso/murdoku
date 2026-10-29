@@ -43,7 +43,6 @@ export const MANOIR_6: DeductionCase = {
     { t: 'furniture', who: 'victime', ftype: 'transat', text: "M. Hervé gisait dans un transat." },
     { t: 'furniture', who: 'plaquiste', ftype: 'lit', color: 'bleu', text: "Hugo le Plaquiste dormait sur le lit au duvet bleu." },
     { t: 'room', who: 'notaire', room: 'C', text: "Léa la Notaire travaillait dans le cabinet de travail." },
-    { t: 'room', who: 'libraire', room: 'D', text: "Inès la Libraire préparait un thé à la cuisine." },
     { t: 'nextToFurniture', who: 'libraire', ftype: 'table', text: "Inès la Libraire s'était installée juste à côté d'une table." },
     { t: 'rowAbove', a: 'peintre', b: 'jardinier', text: "Sofia la Peintre se trouvait dans une rangée au-dessus de Marco le Jardinier." },
     { t: 'colLeft', a: 'peintre', b: 'jardinier', text: "Sofia la Peintre se trouvait dans une colonne à gauche de Marco le Jardinier." },
