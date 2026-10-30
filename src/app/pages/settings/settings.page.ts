@@ -33,6 +33,15 @@ import { Settings, SettingsService } from '../../core/services/settings.service'
         </ion-list>
 
         <ion-list inset>
+          <ion-list-header><ion-label>Jeu</ion-label></ion-list-header>
+          <ion-item>
+            <ion-toggle [checked]="s().dragDrop" (ionChange)="set('dragDrop', $event.detail.checked)">Glisser-déposer les personnages</ion-toggle>
+          </ion-item>
+          <ion-note class="note">Désactivé, on place un personnage en le touchant puis en touchant une case, et le plateau défile
+            normalement sous le doigt : plus de déplacement involontaire en faisant défiler les indices.</ion-note>
+        </ion-list>
+
+        <ion-list inset>
           <ion-list-header><ion-label>Sons</ion-label></ion-list-header>
           <ion-item>
             <ion-toggle [checked]="s().music" (ionChange)="set('music', $event.detail.checked)">Musique d'ambiance</ion-toggle>

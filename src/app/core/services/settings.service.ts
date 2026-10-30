@@ -20,6 +20,8 @@ export interface Settings {
   announce: boolean;
   /** Supprime les animations (confettis, pulsations…). */
   reduceMotion: boolean;
+  /** Glisser-déposer des personnages ; désactivé, on place en touchant (et on fait défiler librement). */
+  dragDrop: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -28,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   music: true, musicVolume: 40,
   haptics: true, hapticError: true,
   announce: true, reduceMotion: false,
+  dragDrop: true,
 };
 
 const KEY = 'murdoku:settings:v1';

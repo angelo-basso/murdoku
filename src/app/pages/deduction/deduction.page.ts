@@ -12,6 +12,7 @@ import { FURNITURE, furnName } from '../../core/data/deduction-themes';
 import { AnnouncerService } from '../../core/services/announcer.service';
 import { AudioService, MusicId } from '../../core/services/audio.service';
 import { FeedbackService } from '../../core/services/feedback.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { Clue, DeductionCase, Difficulty, LevelDef } from '../../core/models/deduction.models';
 import { DeductionGameService } from '../../core/services/deduction-game.service';
 import { DeductionGeneratorService } from '../../core/services/deduction-generator.service';
@@ -58,7 +59,7 @@ const TINT: Record<string, string> = {
       </ion-toolbar>
     </ion-header>
 
-    <ion-content [fullscreen]="true" class="ion-padding">
+    <ion-content [fullscreen]="true" class="ion-padding" [class.no-drag]="!settings.settings().dragDrop">
       @if (game.currentCase(); as c) {
         <!-- Barre d'infos compacte -->
         <div class="infobar">
@@ -408,6 +409,8 @@ const TINT: Record<string, string> = {
     @keyframes fall { 0% { transform: translateY(-20px) rotate(0); opacity: 1; }
       100% { transform: translateY(105vh) rotate(540deg); opacity: 0.9; } }
 
+    /* Sans glisser-déposer : le doigt fait défiler la page, même posé sur le plateau ou la réserve */
+    .no-drag .board, .no-drag .token, .no-drag .person { touch-action: manipulation; }
     .clue-btn { all: unset; display: flex; gap: 10px; align-items: flex-start; width: 100%; cursor: pointer; }
     .clue-btn:focus-visible { outline: 3px solid var(--mk-gold-text); outline-offset: 2px; border-radius: 6px; }
     .dlg-focus:focus { outline: none; }
@@ -425,6 +428,7 @@ export class DeductionPage implements OnInit, OnDestroy {
   private router = inject(Router);
   readonly progress = inject(ProgressService);
   private feedback = inject(FeedbackService);
+  readonly settings = inject(SettingsService);
   private announcer = inject(AnnouncerService);
   private audio = inject(AudioService);
   private nav = inject(NavController);
@@ -580,6 +584,7 @@ export class DeductionPage implements OnInit, OnDestroy {
   }
 
   dragStart(id: string, ev: PointerEvent): void {
+    if (!this.settings.settings().dragDrop) return; // touches seulement : laisser défiler
     ev.preventDefault();
     this.candidate = id;
     this.startX = ev.clientX;
