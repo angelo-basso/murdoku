@@ -83,7 +83,7 @@ export interface ShopItem {
 
 export const DEFAULT_FRAME = 'or';
 export const SHOP: ShopItem[] = [
-  { id: 'hint-1', kind: 'hints', qty: 1, price: 3, name: '1 indice', desc: 'Place correctement une personne.' },
+  { id: 'hint-1', kind: 'hints', qty: 1, price: 3, name: '1 indice', desc: 'Montre une personne et la case où la poser.' },
   { id: 'hint-5', kind: 'hints', qty: 5, price: 12, name: '5 indices', desc: 'Le lot avantageux.' },
   { id: 'energy-3', kind: 'energy', qty: 3, price: 4, name: '3 énergies', desc: 'Pour lancer 3 enquêtes de plus tout de suite.' },
   { id: 'energy-10', kind: 'energy', qty: 10, price: 12, name: '10 énergies', desc: 'Peut dépasser le plafond de recharge.' },

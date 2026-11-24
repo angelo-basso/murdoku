@@ -33,6 +33,8 @@ interface CellVm {
   autoX: boolean;
   /** Pièce de la victime, à souligner quand le meurtrier y manque. */
   alone: boolean;
+  /** Case désignée par l'indice en cours. */
+  hinted: boolean;
 }
 
 type ClueState = 'ok' | 'bad' | 'pending';
@@ -85,7 +87,7 @@ const TINT: Record<string, string> = {
             <button type="button" class="cell"
               [class.blocked]="cell.blocked" [class.conflict]="cell.conflict"
               [class.wall-r]="cell.wallR" [class.wall-b]="cell.wallB"
-              [class.target]="cell.target" [class.taken]="cell.taken" [class.flagged]="!!cell.occupant && flagged().has(cell.occupant)" [class.alone]="cell.alone"
+              [class.target]="cell.target" [class.taken]="cell.taken" [class.flagged]="!!cell.occupant && flagged().has(cell.occupant)" [class.alone]="cell.alone" [class.hinted]="cell.hinted"
               [attr.data-r]="cell.r" [attr.data-c]="cell.col"
               [attr.aria-label]="cellLabel(cell)" [attr.tabindex]="cell.r === focusR() && cell.col === focusC() ? 0 : -1"
               (focus)="focusR.set(cell.r); focusC.set(cell.col)"
@@ -96,6 +98,7 @@ const TINT: Record<string, string> = {
                   [src]="cell.occAvatar" alt="" draggable="false"
                   (pointerdown)="dragStart(cell.occupant!, $event)" />
               }
+              @if (cell.hinted) { <span class="hint-mark" aria-hidden="true">💡</span> }
               @if (cell.elim) { <span class="xmark" aria-hidden="true">✕</span> }
               @else if (cell.autoX) { <span class="xmark auto" aria-hidden="true">✕</span> }
             </button>
@@ -119,7 +122,7 @@ const TINT: Record<string, string> = {
         <h2 class="sr-only">Personnes à placer</h2>
         <div class="tray" [style.--n]="trayCols()">
           @for (p of people(); track p.id) {
-            <button type="button" class="person" [class.sel]="p.selected" [class.placed]="p.placed"
+            <button type="button" class="person" [class.sel]="p.selected" [class.placed]="p.placed" [class.hinted]="p.hinted"
               [class.victim]="p.victim" (pointerdown)="dragStart(p.id, $event)" (click)="onPerson(p.id)"
               [attr.aria-pressed]="p.selected" [attr.aria-label]="p.label">
               <img [src]="p.avatar" alt="" draggable="false" />
@@ -136,7 +139,7 @@ const TINT: Record<string, string> = {
             <ion-icon name="create-outline"></ion-icon><span>Rature</span>
           </button>
           <button type="button" class="ctrl" (click)="onHint()"
-            [attr.aria-label]="'Indice : place correctement une personne. ' + (tutorial ? 'Gratuit dans l’initiation.' : progress.inventory().hints + ' restant' + (progress.inventory().hints > 1 ? 's' : '') + '.')">
+            [attr.aria-label]="'Indice : montre une personne et la case où la poser. ' + (tutorial ? 'Gratuit dans l’initiation.' : progress.inventory().hints + ' restant' + (progress.inventory().hints > 1 ? 's' : '') + '.')">
             <ion-icon name="bulb-outline"></ion-icon><span>Indice</span>
             <b class="badge" aria-hidden="true">{{ tutorial ? '∞' : progress.inventory().hints }}</b>
           </button>
@@ -346,6 +349,13 @@ const TINT: Record<string, string> = {
     .gain { margin: 0 0 4px; color: var(--mk-success-text); font-weight: 700; font-size: .9rem; }
     .cell.flagged::after { content: ''; position: absolute; inset: 1px; z-index: 4; border-radius: 4px; pointer-events: none;
       box-shadow: inset 0 0 0 3px #eb445a; animation: glow 0.8s ease-in-out infinite; }
+    .cell.hinted::after { content: ''; position: absolute; inset: 1px; z-index: 4; border-radius: 4px; pointer-events: none;
+      background: #f3d57a55; box-shadow: inset 0 0 0 4px #f3d57a; animation: hintcell 1s ease-in-out infinite; }
+    @keyframes hintcell { 50% { background: #f3d57a22; box-shadow: inset 0 0 0 2px #f3d57a; } }
+    .hint-mark { position: absolute; top: 1px; right: 2px; z-index: 5; font-size: 13px; pointer-events: none;
+      filter: drop-shadow(0 0 3px #f3d57a); animation: pop .3s ease; }
+    .person.hinted { border-color: #f3d57a; box-shadow: 0 0 0 2px #f3d57a, 0 0 12px #f3d57a99; animation: hintpulse 1s ease-in-out infinite; }
+    @keyframes hintpulse { 50% { box-shadow: 0 0 0 2px #f3d57a55, 0 0 4px #f3d57a33; } }
     .cell.alone::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
       background: #eb445a33; box-shadow: inset 0 0 0 2px #eb445a; animation: glow 1.2s ease-in-out infinite; }
     .nudge { max-width: 420px; margin: 0 auto 8px; text-align: center; color: var(--mk-gold-text); font-size: 12.5px; }
@@ -498,6 +508,11 @@ export class DeductionPage implements OnInit, OnDestroy {
       }
       prev = { ...place };
     });
+    // Indice suivi : il disparaît dès que la personne est posée sur la bonne case.
+    effect(() => {
+      const h = this.hintShown(), at = h ? this.game.placement()[h.id] : null;
+      if (h && at && at[0] === h.at[0] && at[1] === h.at[1]) this.hintShown.set(null);
+    }, { allowSignalWrites: true });
     // Erreur : nouveau conflit ou indice contredit.
     let lastErr = 0;
     effect(() => {
@@ -803,6 +818,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     const { rows, cols } = this.takenLines();
     const guiding = !!sel && !notes;
     const closed = this.closedRooms();
+    const hint = this.hintShown();
     const victim = c.people.find((p) => p.victim);
     const vp = victim && this.game.victimAlone() ? this.game.placement()[victim.id] : null;
     const aloneRoom = vp ? c.rooms[vp[0]][vp[1]] : null;
@@ -828,6 +844,7 @@ export class DeductionPage implements OnInit, OnDestroy {
           elim, selectedHere: !!occ && occ === sel,
           autoX: !blocked && !occ && lineTaken,
           alone: room === aloneRoom,
+          hinted: !!hint && hint.at[0] === r && hint.at[1] === col,
         });
       }
     }
@@ -858,7 +875,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     return c.people.map((p) => ({
       id: p.id, name: p.name, short: compact ? p.name.split(/,| le | la | l'/)[0] : p.name.replace(/^(Le |La |L')/, ''),
       avatar: this.avatar(p.id), victim: !!p.victim,
-      placed: this.game.isPlaced(p.id), selected: sel === p.id,
+      placed: this.game.isPlaced(p.id), selected: sel === p.id, hinted: this.hintShown()?.id === p.id,
       label: p.name + (p.victim ? ', la victime' : '') + (place[p.id] ? `, en ligne ${place[p.id]![0] + 1}, colonne ${place[p.id]![1] + 1}` : ', pas encore placé'),
     }));
   });
@@ -894,6 +911,11 @@ export class DeductionPage implements OnInit, OnDestroy {
     const name = sel ? c.people.find((p) => p.id === sel)?.name : '';
     if (this.game.notesMode()) {
       return sel ? `Rature : touche les cases où ${name} ne peut pas être.` : 'Rature : choisis d\'abord un personnage.';
+    }
+    const hint = this.hintShown();
+    if (hint && !this.game.notesMode()) {
+      const n = c.people.find((p) => p.id === hint.id)!.name;
+      return `💡 Indice : ${n} → ligne ${hint.at[0] + 1}, colonne ${hint.at[1] + 1}. Touche la case en surbrillance.`;
     }
     if (this.game.conflicts().size) return 'Deux personnes partagent une ligne, une colonne ou une pièce (seul le meurtrier rejoint la victime).';
     if (this.badClues()) return `${this.badClues()} indice${this.badClues() > 1 ? 's' : ''} non respecté${this.badClues() > 1 ? 's' : ''} (en rouge).`;
@@ -963,14 +985,32 @@ export class DeductionPage implements OnInit, OnDestroy {
     const sel = this.game.selected();
     if (sel) { this.game.removePerson(sel); this.game.selectPerson(sel); }
   }
+  /**
+   * Indice : met en surbrillance une personne et la case où elle doit aller (sans la déplacer).
+   * Tant qu'elle n'y est pas posée, retoucher « Indice » rappelle le même indice gratuitement.
+   */
   onHint(): void {
-    if (!this.tutorial && this.progress.inventory().hints <= 0) { this.nudge('Plus d\'indice en réserve.'); return; }
-    if (!this.game.hint()) { this.announcer.say('Tout le monde est déjà bien placé.'); return; }
-    if (!this.tutorial) this.progress.use('hints');
-    this.helped = true;
+    const c = this.game.currentCase();
+    if (!c) return;
+    let hint = this.hintShown();
+    if (!hint) {
+      if (!this.tutorial && this.progress.inventory().hints <= 0) { this.nudge('Plus d\'indice en réserve.'); return; }
+      hint = this.game.nextHint();
+      if (!hint) { this.announcer.say('Tout le monde est déjà bien placé.'); return; }
+      if (!this.tutorial) this.progress.use('hints');
+      this.helped = true;
+      this.hintShown.set(hint);
+    }
+    this.game.focusPerson(hint.id);
     this.feedback.emit('hint');
     this.shopNudge.set('');
+    const name = c.people.find((p) => p.id === hint!.id)!.name;
+    const [r, col] = hint.at;
+    this.announcer.say(`Indice : ${name} doit aller en ligne ${r + 1}, colonne ${col + 1}, dans « ${c.roomNames[c.rooms[r][col]]} ». Touche la case en surbrillance.`);
+    document.querySelector('.board')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+  /** Indice affiché : personne et case cible, jusqu'à ce qu'elle y soit posée. */
+  readonly hintShown = signal<{ id: string; at: [number, number] } | null>(null);
 
   /** Loupe : entoure en rouge les personnes mal placées pendant quelques secondes. */
   onLoupe(): void {
@@ -1027,6 +1067,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     this.game.reset();
     this.recorded = null;
     this.helped = false;
+    this.hintShown.set(null);
     this.result.set(null);
     this.struck.set(new Set());
     const c = this.game.currentCase();
