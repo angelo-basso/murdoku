@@ -61,7 +61,8 @@ const TINT: Record<string, string> = {
       </ion-toolbar>
     </ion-header>
 
-    <ion-content [fullscreen]="true" class="ion-padding" [class.no-drag]="!settings.settings().dragDrop">
+    <ion-content [fullscreen]="true" class="ion-padding" [class.no-drag]="!settings.settings().dragDrop"
+      [scrollEvents]="true" (ionScroll)="updateJump()">
       @if (game.currentCase(); as c) {
         <!-- Barre d'infos compacte -->
         <div class="infobar">
@@ -95,8 +96,7 @@ const TINT: Record<string, string> = {
               @if (cell.furn) { <img class="furn" [src]="cell.furn" alt="" draggable="false" /> }
               @if (cell.occAvatar) {
                 <img class="token" [class.victim]="cell.occVictim" [class.sel]="cell.selectedHere"
-                  [src]="cell.occAvatar" alt="" draggable="false"
-                  (pointerdown)="dragStart(cell.occupant!, $event)" />
+                  [src]="cell.occAvatar" alt="" draggable="false" />
               }
               @if (cell.hinted) { <span class="hint-mark" aria-hidden="true">💡</span> }
               @if (cell.elim) { <span class="xmark" aria-hidden="true">✕</span> }
@@ -148,13 +148,13 @@ const TINT: Record<string, string> = {
             <ion-icon name="search-outline"></ion-icon><span>Loupe</span>
             <b class="badge" aria-hidden="true">{{ tutorial ? '∞' : progress.inventory().loupes }}</b>
           </button>
-          <button type="button" class="ctrl" (click)="showClues = !showClues" [attr.aria-expanded]="showClues">
+          <button type="button" class="ctrl" (click)="toggleClues()" [attr.aria-expanded]="showClues">
             <ion-icon name="list-outline"></ion-icon><span>{{ showClues ? 'Masquer' : 'Indices' }}</span>
           </button>
         </div>
 
         @if (showClues) {
-          <h2 class="clues-title">Indices <small>· touche pour barrer</small></h2>
+          <h2 class="clues-title" id="clues-title">Indices <small>· touche pour barrer</small></h2>
           <ol class="clues">
             @for (cl of clueStates(); track $index) {
               <li [class.ok]="cl.state === 'ok'" [class.bad]="cl.state === 'bad'" [class.struck]="cl.struck">
@@ -174,6 +174,13 @@ const TINT: Record<string, string> = {
               @for (rm of roomPlan(); track rm.name) { <li>{{ rm.text }}</li> }
             </ul>
           </section>
+        }
+
+        @if (showClues && jumpMode(); as mode) {
+        <button type="button" slot="fixed" class="jump" (click)="jump()"
+          [attr.aria-label]="mode === 'up' ? 'Remonter au plateau' : 'Descendre aux indices'">
+          {{ mode === 'up' ? '↑ Plateau' : '↓ Indices' }}
+        </button>
         }
 
         @if (share) {
@@ -271,7 +278,7 @@ const TINT: Record<string, string> = {
       grid-template-rows: repeat(var(--n), minmax(0, 1fr));
       width: 100%; max-width: 420px; aspect-ratio: 1/1; margin: 0 auto 8px;
       background: #0d0a1c; border: 3px solid var(--gold);
-      border-radius: 8px; overflow: hidden; touch-action: none;
+      border-radius: 8px; overflow: hidden; touch-action: manipulation;
     }
     .cell {
       position: relative; padding: 0; margin: 0; border: 1px solid #0007;
@@ -298,7 +305,7 @@ const TINT: Record<string, string> = {
     }
     .furn { position: absolute; width: 86%; height: 86%; object-fit: contain; opacity: 0.92; }
     .token { position: absolute; inset: 0; margin: auto; width: 80%; height: 80%;
-      object-fit: contain; z-index: 3; touch-action: none; filter: drop-shadow(0 2px 2px #000c);
+      object-fit: contain; z-index: 3; touch-action: manipulation; filter: drop-shadow(0 2px 2px #000c);
       animation: pop .22s cubic-bezier(.3,1.6,.6,1); }
     .token.sel { filter: drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 2px var(--gold)); }
     .cell.conflict .token { filter: drop-shadow(0 0 3px var(--ion-color-danger)) drop-shadow(0 0 2px var(--ion-color-danger)); }
@@ -352,6 +359,9 @@ const TINT: Record<string, string> = {
     .cell.hinted::after { content: ''; position: absolute; inset: 1px; z-index: 4; border-radius: 4px; pointer-events: none;
       background: #f3d57a55; box-shadow: inset 0 0 0 4px #f3d57a; animation: hintcell 1s ease-in-out infinite; }
     @keyframes hintcell { 50% { background: #f3d57a22; box-shadow: inset 0 0 0 2px #f3d57a; } }
+    .jump { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 30;
+      padding: 10px 16px; border-radius: 999px; border: 1px solid var(--gold); background: var(--ion-card-background);
+      color: var(--mk-gold-text); font-weight: 700; font-size: .9rem; box-shadow: 0 4px 14px #0007; }
     .hint-mark { position: absolute; top: 1px; right: 2px; z-index: 5; font-size: 13px; pointer-events: none;
       filter: drop-shadow(0 0 3px #f3d57a); animation: pop .3s ease; }
     .person.hinted { border-color: #f3d57a; box-shadow: 0 0 0 2px #f3d57a, 0 0 12px #f3d57a99; animation: hintpulse 1s ease-in-out infinite; }
@@ -687,6 +697,7 @@ export class DeductionPage implements OnInit, OnDestroy {
     this.loading.set(false);
     // Enquête payée : sauvegardée tout de suite, pour qu'un retour au menu ne la fasse pas repayer.
     this.paid = mustPay || !!saved;
+    setTimeout(() => this.updateJump(), 50);
     if (mustPay) this.saveNow();
   }
 
@@ -1009,6 +1020,27 @@ export class DeductionPage implements OnInit, OnDestroy {
     this.announcer.say(`Indice : ${name} doit aller en ligne ${r + 1}, colonne ${col + 1}, dans « ${c.roomNames[c.rooms[r][col]]} ». Touche la case en surbrillance.`);
     document.querySelector('.board')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+  /**
+   * Bouton flottant : « ↓ Indices » tant que les indices sont sous l'écran, « ↑ Plateau » une fois
+   * le plateau sorti par le haut ; caché quand tout est visible.
+   */
+  readonly jumpMode = signal<'up' | 'down' | null>(null);
+  updateJump(): void {
+    const board = document.querySelector('.board')?.getBoundingClientRect();
+    const clues = document.getElementById('clues-title')?.getBoundingClientRect();
+    if (!board || !clues) { this.jumpMode.set(null); return; }
+    this.jumpMode.set(board.top < 0 ? 'up' : clues.top > window.innerHeight - 60 ? 'down' : null);
+  }
+  toggleClues(): void {
+    this.showClues = !this.showClues;
+    setTimeout(() => this.updateJump(), 50);
+  }
+  jump(): void {
+    const up = this.jumpMode() === 'up';
+    const target = up ? document.querySelector('.board') : document.getElementById('clues-title');
+    target?.scrollIntoView({ behavior: this.settings.settings().reduceMotion ? 'auto' : 'smooth', block: up ? 'center' : 'start' });
+  }
+
   /** Indice affiché : personne et case cible, jusqu'à ce qu'elle y soit posée. */
   readonly hintShown = signal<{ id: string; at: [number, number] } | null>(null);
 
