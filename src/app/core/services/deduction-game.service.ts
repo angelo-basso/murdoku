@@ -218,25 +218,22 @@ export class DeductionGameService {
     return Object.entries(place).filter(([id, p]) => p && (sol[id]![0] !== p[0] || sol[id]![1] !== p[1])).map(([id]) => id);
   }
 
-  /** Indice : place correctement une personne encore mal placée ; false si tout est déjà juste. */
-  hint(): boolean {
-    const c = this.caseSig();
-    if (!c || !this.solutionCache) return false;
-    const sol = this.solutionCache;
-    const place = { ...this.placeSig() };
-    for (const p of c.people) {
-      const want = sol[p.id];
-      const cur = place[p.id];
-      if (want && (!cur || cur[0] !== want[0] || cur[1] !== want[1])) {
-        // libère la case cible si occupée par quelqu'un d'autre
-        for (const [id, pp] of Object.entries(place))
-          if (pp && pp[0] === want[0] && pp[1] === want[1]) place[id] = null;
-        place[p.id] = [want[0], want[1]];
-        this.placeSig.set(place);
-        this.selectedSig.set(null);
-        return true;
-      }
-    }
-    return false;
+  /**
+   * Indice : une personne mal placée (en priorité) ou pas encore placée, et la case où elle doit aller.
+   * Ne déplace rien : l'écran la met en surbrillance et le joueur la pose lui-même.
+   */
+  nextHint(): { id: string; at: [number, number] } | null {
+    const c = this.caseSig(), sol = this.solutionCache;
+    if (!c || !sol) return null;
+    const place = this.placeSig();
+    const off = c.people.filter((p) => { const w = sol[p.id], cur = place[p.id]; return w && (!cur || cur[0] !== w[0] || cur[1] !== w[1]); });
+    const pick = off.find((p) => place[p.id]) ?? off[0];
+    return pick ? { id: pick.id, at: [sol[pick.id]![0], sol[pick.id]![1]] } : null;
+  }
+
+  /** Sélectionne une personne (sans basculer) et quitte le mode rature. */
+  focusPerson(id: string): void {
+    this.notesModeSig.set(false);
+    this.selectedSig.set(id);
   }
 }
